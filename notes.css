@@ -522,6 +522,15 @@ html, body {
 #preview-panel ul, #preview-panel ol { margin: 0.5em 0; padding-left: 1.6em; }
 #preview-panel li { margin: 0.2em 0; }
 
+#preview-panel .preview-img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin: 6px 0;
+  display: block;
+  box-shadow: 0 2px 8px rgba(92, 61, 34, 0.12);
+}
+
 #preview-panel hr {
   border: none;
   border-top: 1px solid var(--border);

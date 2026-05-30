@@ -2,6 +2,7 @@
    État global
    ═══════════════════════════════════════════════════════════════════ */
 let notes = [];
+let images = {};          // { imgId: dataUrl }
 let currentNoteId = null;
 let saveTimer = null;
 let toastTimer = null;
@@ -20,6 +21,36 @@ function persistNotes() {
   return new Promise(resolve => {
     chrome.storage.local.set({ quicknotes: notes }, resolve);
   });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Stockage des images (séparé des notes)
+   ═══════════════════════════════════════════════════════════════════ */
+function loadImages() {
+  return new Promise(resolve => {
+    chrome.storage.local.get(['quicknotes_images'], r => {
+      images = r.quicknotes_images || {};
+      resolve();
+    });
+  });
+}
+
+function saveImage(id, dataUrl) {
+  images[id] = dataUrl;
+  return new Promise(resolve => {
+    chrome.storage.local.set({ quicknotes_images: images }, resolve);
+  });
+}
+
+function deleteImages(ids) {
+  ids.forEach(id => delete images[id]);
+  return new Promise(resolve => {
+    chrome.storage.local.set({ quicknotes_images: images }, resolve);
+  });
+}
+
+function extractImageIds(content) {
+  return [...content.matchAll(/!\[[^\]]*\]\(img:([^)]+)\)/g)].map(m => m[1]);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -316,6 +347,11 @@ function inlineFormat(text) {
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     /* Italique *...* */
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    /* Images ![alt](src) — avant les liens */
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, src) => {
+      const resolved = src.startsWith('img:') ? (images[src.slice(4)] || '') : src;
+      return resolved ? `<img src="${resolved}" alt="${alt}" class="preview-img">` : '';
+    })
     /* Liens [texte](url) */
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
 }
@@ -533,6 +569,9 @@ async function deleteCurrentNote() {
   if (!currentNoteId) return;
   if (!confirm('Supprimer cette note ? Cette action est irréversible.')) return;
 
+  const dying = notes.find(n => n.id === currentNoteId);
+  if (dying) await deleteImages(extractImageIds(dying.content));
+
   notes = notes.filter(n => n.id !== currentNoteId);
   currentNoteId = null;
   await persistNotes();
@@ -669,7 +708,7 @@ document.addEventListener('click', e => {
    Initialisation
    ═══════════════════════════════════════════════════════════════════ */
 async function init() {
-  notes = await loadNotes();
+  [notes] = await Promise.all([loadNotes(), loadImages()]);
   renderNoteList();
 
   if (notes.length > 0) {
@@ -733,6 +772,32 @@ async function init() {
     if (!item) return;
     insertCodeBlock(item.dataset.lang);
     closeLangPicker();
+  });
+
+  /* ── Collage d'image (Ctrl+V) ── */
+  document.addEventListener('paste', e => {
+    if (!currentNoteId) return;
+    const items = Array.from(e.clipboardData?.items || []);
+    const imageItem = items.find(it => it.type.startsWith('image/'));
+    if (!imageItem) return;
+
+    e.preventDefault();
+    const blob = imageItem.getAsFile();
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const imgId = generateId();
+      await saveImage(imgId, reader.result);
+
+      if (isPreviewMode) setPreviewMode(false);
+      const editor = document.getElementById('note-editor');
+      const pos = editor.selectionStart;
+      const needsNewline = pos > 0 && editor.value[pos - 1] !== '\n';
+      const insertion = (needsNewline ? '\n' : '') + `![](img:${imgId})\n`;
+      editor.setRangeText(insertion, pos, editor.selectionEnd, 'end');
+      editor.focus();
+      onEditorInput();
+    };
+    reader.readAsDataURL(blob);
   });
 
   /* ── Titre ── */
