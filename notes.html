@@ -54,6 +54,24 @@
             <line x1="12" y1="12" x2="12" y2="16"/>
           </svg>
         </button>
+        <button class="icon-btn" id="btn-toc" title="Table des matières (Ctrl+T)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="btn-split" title="Vue divisée (Ctrl+\)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="18" rx="1"/>
+            <rect x="14" y="3" width="7" height="18" rx="1"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="settings-btn" title="Paramètres">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
         <button class="icon-btn" id="fullscreen-btn" title="Plein écran">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
@@ -104,7 +122,35 @@
             <div class="fmt-sep"></div>
             <button class="fmt-btn fmt-bold" id="btn-bold" title="Gras (Ctrl+B)">B</button>
             <button class="fmt-btn fmt-italic" id="btn-italic" title="Italique (Ctrl+I)">I</button>
-            <button class="fmt-btn" id="btn-heading" title="Titre (#)">H</button>
+            <button class="fmt-btn" id="btn-heading" title="Titre">H <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="10" height="10"><polyline points="6,9 12,15 18,9"/></svg></button>
+            <div class="heading-picker" id="heading-picker">
+              <div class="heading-picker-item" data-level="1"><span class="hp-h1">H1</span><em>Titre principal</em></div>
+              <div class="heading-picker-item" data-level="2"><span class="hp-h2">H2</span><em>Titre secondaire</em></div>
+              <div class="heading-picker-item" data-level="3"><span class="hp-h3">H3</span><em>Titre tertiaire</em></div>
+              <div class="heading-picker-item" data-level="4"><span class="hp-h4">H4</span><em>Sous-titre</em></div>
+              <div class="heading-picker-item" data-level="5"><span class="hp-h5">H5</span><em>Petit titre</em></div>
+              <div class="heading-picker-item" data-level="6"><span class="hp-h6">H6</span><em>Micro titre</em></div>
+            </div>
+            <div class="fmt-sep"></div>
+            <div class="emoji-bar" id="emoji-bar">
+              <button class="emoji-btn" data-emoji="🔴" title="🔴">🔴</button>
+              <button class="emoji-btn" data-emoji="🟠" title="🟠">🟠</button>
+              <button class="emoji-btn" data-emoji="🟡" title="🟡">🟡</button>
+              <button class="emoji-btn" data-emoji="🟢" title="🟢">🟢</button>
+              <button class="emoji-btn" data-emoji="🔵" title="🔵">🔵</button>
+              <button class="emoji-btn" data-emoji="🟣" title="🟣">🟣</button>
+              <button class="emoji-btn" data-emoji="🟤" title="🟤">🟤</button>
+              <button class="emoji-btn" data-emoji="⚫" title="⚫">⚫</button>
+              <div class="emoji-sep"></div>
+              <button class="emoji-btn" data-emoji="📝" title="📝">📝</button>
+              <button class="emoji-btn" data-emoji="📋" title="📋">📋</button>
+              <button class="emoji-btn" data-emoji="📌" title="📌">📌</button>
+              <button class="emoji-btn" data-emoji="💡" title="💡">💡</button>
+              <button class="emoji-btn" data-emoji="☑️" title="☑️">☑️</button>
+              <button class="emoji-btn" data-emoji="🔹" title="🔹">🔹</button>
+              <button class="emoji-btn" data-emoji="⭐" title="⭐">⭐</button>
+              <button class="emoji-btn" data-emoji="🚀" title="🚀">🚀</button>
+            </div>
             <!-- Dropdown de sélection de langage -->
             <div class="lang-picker" id="lang-picker">
               <div class="lang-picker-item" data-lang="">Générique</div>
@@ -132,6 +178,11 @@
           <div class="editor-preview-wrapper">
             <textarea id="note-editor" spellcheck="true" placeholder="Commencer à écrire...&#10;&#10;Utilisez ``` pour un bloc de code, `backticks` pour du code inline."></textarea>
             <div id="preview-panel"></div>
+            <div class="toc-panel" id="toc-panel" style="display:flex">
+              <div class="toc-resize-handle" id="toc-resize-handle"></div>
+              <div class="toc-header">Table des matières</div>
+              <div class="toc-items" id="toc-items"></div>
+            </div>
           </div>
 
           <div class="tags-bar">
@@ -171,6 +222,40 @@
       </button>
     </div>
     <div class="info-panel-body" id="info-panel-body"></div>
+  </div>
+
+  <!-- Panneau de paramètres -->
+  <div class="settings-panel" id="settings-panel" style="display:none">
+    <div class="settings-header">
+      <span>Paramètres</span>
+      <button class="icon-btn" id="close-settings-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-label">Thème</div>
+      <div class="theme-grid" id="theme-grid"></div>
+
+      <div class="settings-sep"></div>
+      <div class="settings-label">Export / Import</div>
+      <div class="ei-buttons">
+        <button class="ei-btn" id="export-json-btn" title="Exporter toutes les notes et images">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exporter tout (.json)
+        </button>
+        <button class="ei-btn" id="export-md-btn" title="Exporter la note courante en Markdown">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Note courante (.md)
+        </button>
+        <button class="ei-btn" id="import-btn" title="Importer depuis un fichier .json ou .md">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Importer (.json / .md)
+        </button>
+      </div>
+      <input type="file" id="import-file-input" accept=".json,.md" style="display:none">
+    </div>
   </div>
 
   <!-- Notification de sauvegarde -->

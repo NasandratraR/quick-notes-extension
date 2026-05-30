@@ -1,12 +1,126 @@
 /* ═══════════════════════════════════════════════════════════════════
+   Thèmes
+   ═══════════════════════════════════════════════════════════════════ */
+const THEMES = {
+  brun: {
+    name: 'Marron chaud', dark: false,
+    vars: {
+      '--bg-main':'#faf7f4','--bg-sidebar':'#f0ebe3','--bg-toolbar':'#ede7de',
+      '--bg-note-hover':'#e5ddd3','--bg-note-active':'#c9a882',
+      '--bg-search':'#e4ddd4','--bg-editor':'#fefcfa','--bg-tags':'#f5f0ea',
+      '--text-primary':'#2c1f14','--text-secondary':'#7a6350',
+      '--text-muted':'#b0977e','--text-placeholder':'#c4ad97','--text-on-active':'#1a1008',
+      '--border':'#d8cfc5','--border-light':'#e8e0d6',
+      '--icon-default':'#9e7f62','--icon-hover':'#5c3d22','--scrollbar-thumb':'#c4b09a',
+      '--code-bg':'#f5ede0','--code-border':'#d8c9b5','--code-header':'#ede3d5',
+    }
+  },
+  nuit: {
+    name: 'Nuit', dark: true,
+    vars: {
+      '--bg-main':'#1a1d24','--bg-sidebar':'#1e2130','--bg-toolbar':'#171921',
+      '--bg-note-hover':'#252838','--bg-note-active':'#3a5080',
+      '--bg-search':'#252838','--bg-editor':'#1c1f2b','--bg-tags':'#171921',
+      '--text-primary':'#e2e2e8','--text-secondary':'#9090a8',
+      '--text-muted':'#565670','--text-placeholder':'#404058','--text-on-active':'#ffffff',
+      '--border':'#2d2f3d','--border-light':'#252838',
+      '--icon-default':'#7070a0','--icon-hover':'#e2e2e8','--scrollbar-thumb':'#3a3d50',
+      '--code-bg':'#13151e','--code-border':'#2d2f3d','--code-header':'#1a1d28',
+    }
+  },
+  ardoise: {
+    name: 'Ardoise', dark: true,
+    vars: {
+      '--bg-main':'#2a2d38','--bg-sidebar':'#22252f','--bg-toolbar':'#1e2028',
+      '--bg-note-hover':'#32364a','--bg-note-active':'#5870a8',
+      '--bg-search':'#30334a','--bg-editor':'#2c2f3e','--bg-tags':'#1e2028',
+      '--text-primary':'#dde2f0','--text-secondary':'#9098b8',
+      '--text-muted':'#606880','--text-placeholder':'#484e68','--text-on-active':'#ffffff',
+      '--border':'#383c50','--border-light':'#2e3245',
+      '--icon-default':'#7888b8','--icon-hover':'#dde2f0','--scrollbar-thumb':'#484e68',
+      '--code-bg':'#1e2130','--code-border':'#383c50','--code-header':'#1a1d28',
+    }
+  },
+  foret: {
+    name: 'Forêt', dark: false,
+    vars: {
+      '--bg-main':'#f4f8f4','--bg-sidebar':'#e8f0e8','--bg-toolbar':'#ddeadd',
+      '--bg-note-hover':'#d4e8d4','--bg-note-active':'#5a8a5a',
+      '--bg-search':'#d8e8d8','--bg-editor':'#f8fbf8','--bg-tags':'#eef5ee',
+      '--text-primary':'#1a2e1a','--text-secondary':'#4a6a4a',
+      '--text-muted':'#7a9a7a','--text-placeholder':'#a0c0a0','--text-on-active':'#ffffff',
+      '--border':'#c5d8c5','--border-light':'#d8ead8',
+      '--icon-default':'#6a8a6a','--icon-hover':'#2a4a2a','--scrollbar-thumb':'#b0c8b0',
+      '--code-bg':'#eaf3ea','--code-border':'#c5d8c5','--code-header':'#daeada',
+    }
+  },
+  ocean: {
+    name: 'Océan', dark: false,
+    vars: {
+      '--bg-main':'#f4f7fa','--bg-sidebar':'#e8eef5','--bg-toolbar':'#dce5f0',
+      '--bg-note-hover':'#d0dcea','--bg-note-active':'#4a7aa8',
+      '--bg-search':'#d8e4f0','--bg-editor':'#f8fafb','--bg-tags':'#edf2f8',
+      '--text-primary':'#1a2a3a','--text-secondary':'#4a6a8a',
+      '--text-muted':'#7a9aba','--text-placeholder':'#a0b8cc','--text-on-active':'#ffffff',
+      '--border':'#c5d2de','--border-light':'#d8e2ec',
+      '--icon-default':'#6a8aa8','--icon-hover':'#1a3a5a','--scrollbar-thumb':'#b0c5d8',
+      '--code-bg':'#eaf0f8','--code-border':'#c5d2de','--code-header':'#dae4f0',
+    }
+  },
+  rose: {
+    name: 'Rose', dark: false,
+    vars: {
+      '--bg-main':'#fdf8f8','--bg-sidebar':'#f5ecec','--bg-toolbar':'#ece2e2',
+      '--bg-note-hover':'#e8d8d8','--bg-note-active':'#c47878',
+      '--bg-search':'#e4d5d5','--bg-editor':'#fffafa','--bg-tags':'#f8f0f0',
+      '--text-primary':'#2e1a1a','--text-secondary':'#7a5050',
+      '--text-muted':'#b09090','--text-placeholder':'#c8a8a8','--text-on-active':'#ffffff',
+      '--border':'#d8c5c5','--border-light':'#e8d5d5',
+      '--icon-default':'#a87070','--icon-hover':'#5a2a2a','--scrollbar-thumb':'#c8a8a8',
+      '--code-bg':'#f8ecec','--code-border':'#d8c5c5','--code-header':'#eedada',
+    }
+  },
+  sable: {
+    name: 'Sable', dark: false,
+    vars: {
+      '--bg-main':'#faf8f0','--bg-sidebar':'#f0ece0','--bg-toolbar':'#e8e2d0',
+      '--bg-note-hover':'#dfd8c0','--bg-note-active':'#b09040',
+      '--bg-search':'#ddd8c8','--bg-editor':'#fdfcf5','--bg-tags':'#f5f0e0',
+      '--text-primary':'#2a2010','--text-secondary':'#6a5830',
+      '--text-muted':'#a09070','--text-placeholder':'#c0b090','--text-on-active':'#ffffff',
+      '--border':'#d5ccb0','--border-light':'#e5ddc8',
+      '--icon-default':'#8a7840','--icon-hover':'#4a3820','--scrollbar-thumb':'#c0b090',
+      '--code-bg':'#f0ead8','--code-border':'#d5ccb0','--code-header':'#e8dfc8',
+    }
+  },
+  violet: {
+    name: 'Violet', dark: false,
+    vars: {
+      '--bg-main':'#f8f5fc','--bg-sidebar':'#ede5f5','--bg-toolbar':'#e4d8f0',
+      '--bg-note-hover':'#ddd0ec','--bg-note-active':'#8a60b8',
+      '--bg-search':'#ddd0ec','--bg-editor':'#fbf8fe','--bg-tags':'#f2ecfa',
+      '--text-primary':'#261040','--text-secondary':'#6a4a90',
+      '--text-muted':'#a080c0','--text-placeholder':'#c0a0d8','--text-on-active':'#ffffff',
+      '--border':'#d0c0e0','--border-light':'#e0d4f0',
+      '--icon-default':'#9070b8','--icon-hover':'#3a1868','--scrollbar-thumb':'#c0a8d8',
+      '--code-bg':'#f0e8fa','--code-border':'#d0c0e0','--code-header':'#e4d4f5',
+    }
+  },
+};
+
+/* ═══════════════════════════════════════════════════════════════════
    État global
    ═══════════════════════════════════════════════════════════════════ */
 let notes = [];
 let images = {};          // { imgId: dataUrl }
 let currentNoteId = null;
 let saveTimer = null;
+let renderTimer = null;
 let toastTimer = null;
 let isPreviewMode = false;
+let isSplitMode   = false;
+let currentTheme  = 'brun';
+let tocScrollPending = false;
 
 /* ═══════════════════════════════════════════════════════════════════
    Stockage
@@ -50,7 +164,7 @@ function deleteImages(ids) {
 }
 
 function extractImageIds(content) {
-  return [...content.matchAll(/!\[[^\]]*\]\(img:([^)]+)\)/g)].map(m => m[1]);
+  return [...content.matchAll(/!\[[^\]]*\]\(img:([a-z0-9]+)/g)].map(m => m[1]);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -227,6 +341,10 @@ function esc(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function highlightCode(rawCode, lang) {
   const normalLang = normalizeLang(lang);
 
@@ -257,6 +375,7 @@ function renderMarkdown(text) {
   const blocks = [];
   const lines = text.split('\n');
   let i = 0;
+  let hIdx = 0; // compteur d'IDs pour les titres
 
   while (i < lines.length) {
     const line = lines[i];
@@ -287,10 +406,10 @@ function renderMarkdown(text) {
     }
 
     /* Titres */
-    if (/^#{1,3}\s/.test(line)) {
-      const level = line.match(/^(#{1,3})/)[1].length;
+    if (/^#{1,6}\s/.test(line)) {
+      const level = line.match(/^(#{1,6})/)[1].length;
       const content = inlineFormat(line.slice(level + 1));
-      blocks.push(`<h${level}>${content}</h${level}>`);
+      blocks.push(`<h${level} id="h-${hIdx++}">${content}</h${level}>`);
       i++;
       continue;
     }
@@ -326,7 +445,7 @@ function renderMarkdown(text) {
 
     /* Lignes vides */
     if (line.trim() === '') {
-      blocks.push('<br>');
+      blocks.push('<div class="blank-line"></div>');
       i++;
       continue;
     }
@@ -347,10 +466,24 @@ function inlineFormat(text) {
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     /* Italique *...* */
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    /* Images ![alt](src) — avant les liens */
+    /* Images ![alt](src) ou ![alt](img:ID =300) — avant les liens */
     .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, src) => {
-      const resolved = src.startsWith('img:') ? (images[src.slice(4)] || '') : src;
-      return resolved ? `<img src="${resolved}" alt="${alt}" class="preview-img">` : '';
+      let resolved = '', imgRef = src, width = null;
+      if (src.startsWith('img:')) {
+        const eqIdx = src.indexOf(' =', 4);
+        const imgId = eqIdx === -1 ? src.slice(4) : src.slice(4, eqIdx);
+        imgRef = `img:${imgId}`;
+        if (eqIdx !== -1) width = parseInt(src.slice(eqIdx + 2)) || null;
+        resolved = images[imgId] || '';
+      } else {
+        resolved = src;
+      }
+      if (!resolved) return '';
+      const wStyle = width ? ` style="width:${width}px"` : '';
+      return `<div class="img-wrapper" data-imgref="${imgRef}">`
+           + `<img src="${resolved}" alt="${alt}" class="preview-img"${wStyle}>`
+           + `<div class="img-resize-handle" title="Redimensionner"></div>`
+           + `</div>`;
     })
     /* Liens [texte](url) */
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
@@ -399,6 +532,93 @@ function insertCodeBlock(lang) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   Rendu du panneau aperçu (partagé entre mode aperçu et split)
+   ═══════════════════════════════════════════════════════════════════ */
+function renderPreviewPanel() {
+  const note = notes.find(n => n.id === currentNoteId);
+  const previewEl = document.getElementById('preview-panel');
+  if (!note) { previewEl.innerHTML = ''; return; }
+
+  previewEl.innerHTML = renderMarkdown(note.content);
+  previewEl.querySelectorAll('.copy-code-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(btn.dataset.code).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = 'Copié !';
+        setTimeout(() => (btn.textContent = orig), 1500);
+      });
+    });
+  });
+
+  setupImageResize();
+  if (isTocOpen) { renderTocPanel(); setupTocScrollSpy(); }
+}
+
+/* Poignée de redimensionnement des images en aperçu */
+function setupImageResize() {
+  const previewEl = document.getElementById('preview-panel');
+  previewEl.querySelectorAll('.img-resize-handle').forEach(handle => {
+    handle.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      const wrapper = handle.closest('.img-wrapper');
+      const img     = wrapper.querySelector('img');
+      const startX  = e.clientX;
+      const startW  = img.offsetWidth;
+
+      function onMove(ev) {
+        const w = Math.max(50, startW + ev.clientX - startX);
+        img.style.width = w + 'px';
+      }
+
+      function onUp() {
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup',   onUp);
+        if (!currentNoteId) return;
+        const note   = notes.find(n => n.id === currentNoteId);
+        if (!note) return;
+        const imgRef = wrapper.dataset.imgref;
+        const finalW = Math.round(img.offsetWidth);
+        const re = new RegExp(
+          `(!\\[[^\\]]*\\]\\()${escapeRegex(imgRef)}(\\s*=\\d+)?(\\))`, 'g'
+        );
+        note.content = note.content.replace(re, `$1${imgRef} =${finalW}$3`);
+        document.getElementById('note-editor').value = note.content;
+        persistNotes();
+      }
+
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup',   onUp);
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Mode split
+   ═══════════════════════════════════════════════════════════════════ */
+function setSplitMode(active) {
+  isSplitMode = active;
+  const wrapper    = document.querySelector('.editor-preview-wrapper');
+  const editorEl   = document.getElementById('note-editor');
+  const previewEl  = document.getElementById('preview-panel');
+  const btn        = document.getElementById('btn-split');
+  const viewToggle = document.getElementById('view-toggle-toolbar');
+
+  if (active) {
+    wrapper.classList.add('split');
+    editorEl.style.display  = '';
+    previewEl.style.display = 'block';
+    btn.classList.add('split-active');
+    viewToggle.style.display = 'none';
+    renderPreviewPanel();
+  } else {
+    wrapper.classList.remove('split');
+    btn.classList.remove('split-active');
+    viewToggle.style.display = 'flex';
+    setPreviewMode(isPreviewMode);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    Mode aperçu
    ═══════════════════════════════════════════════════════════════════ */
 function setPreviewMode(preview) {
@@ -409,20 +629,7 @@ function setPreviewMode(preview) {
   const btnPreview = document.getElementById('btn-preview-mode');
 
   if (preview) {
-    const note = notes.find(n => n.id === currentNoteId);
-    if (note) {
-      previewEl.innerHTML = renderMarkdown(note.content);
-    }
-    /* Boutons "Copier" dans les blocs de code */
-    previewEl.querySelectorAll('.copy-code-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        navigator.clipboard.writeText(btn.dataset.code).then(() => {
-          const orig = btn.textContent;
-          btn.textContent = 'Copié !';
-          setTimeout(() => (btn.textContent = orig), 1500);
-        });
-      });
-    });
+    renderPreviewPanel();
     editorEl.style.display  = 'none';
     previewEl.style.display = 'block';
     btnEdit.classList.remove('active');
@@ -473,9 +680,9 @@ function parseNote(content) {
   return { title, preview };
 }
 
-function formatDate(ts) {
+function formatDate(ts, now = Date.now()) {
   const d = new Date(ts);
-  const diff = Date.now() - ts;
+  const diff = now - ts;
   if (diff < 60_000)     return 'À l\'instant';
   if (diff < 3_600_000)  return `${Math.floor(diff / 60_000)} min`;
   if (diff < 86_400_000) return d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
@@ -484,9 +691,11 @@ function formatDate(ts) {
 }
 
 function escHtml(s) {
-  const d = document.createElement('div');
-  d.appendChild(document.createTextNode(s));
-  return d.innerHTML;
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function showToast() {
@@ -499,13 +708,33 @@ function showToast() {
 /* ═══════════════════════════════════════════════════════════════════
    Rendu de la liste
    ═══════════════════════════════════════════════════════════════════ */
+
+/* Mise à jour partielle d'un seul item (évite de reconstruire toute la liste) */
+function updateNoteItemDisplay(note) {
+  const el = document.querySelector(`.note-item[data-id="${note.id}"]`);
+  if (!el) return;
+  const titleEl   = el.querySelector('.note-title');
+  const previewEl = el.querySelector('.note-preview');
+  const dateEl    = el.querySelector('.note-date');
+  if (titleEl)   titleEl.textContent  = getNoteTitle(note);
+  if (previewEl) {
+    const p = getNotePreview(note);
+    previewEl.innerHTML = p ? escHtml(p) : '<em style="opacity:.5">Vide</em>';
+  }
+  if (dateEl)    dateEl.textContent   = formatDate(note.updatedAt);
+}
+
 function renderNoteList(filter = '') {
   const list = document.getElementById('notes-list');
   const q = filter.toLowerCase();
+  const now = Date.now();
 
-  const filtered = notes
-    .filter(n => !q || n.content.toLowerCase().includes(q))
-    .sort((a, b) => b.updatedAt - a.updatedAt);
+  // Respecte l'ordre du tableau ; le tri ne s'applique que lors du filtre de recherche
+  const filtered = notes.filter(n =>
+    !q ||
+    (n.title || '').toLowerCase().includes(q) ||
+    n.content.toLowerCase().includes(q)
+  );
 
   list.innerHTML = '';
 
@@ -522,16 +751,125 @@ function renderNoteList(filter = '') {
     const item = document.createElement('div');
     item.className = 'note-item' + (note.id === currentNoteId ? ' active' : '');
     item.dataset.id = note.id;
+    item.draggable = true;
     item.innerHTML = `
       <div class="note-item-header">
         <div class="note-title">${escHtml(title)}</div>
-        <div class="note-date">${formatDate(note.updatedAt)}</div>
+        <div class="note-date">${formatDate(note.updatedAt, now)}</div>
       </div>
       <div class="note-preview">${preview ? escHtml(preview) : '<em style="opacity:.5">Vide</em>'}</div>
     `;
+
     item.addEventListener('click', () => selectNote(note.id));
+    item.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      watchForDrag(note.id, item, e);
+    });
+
     list.appendChild(item);
   });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Drag & drop (pointer events — fluide, avec seuil de déclenchement)
+   ═══════════════════════════════════════════════════════════════════ */
+const DRAG_THRESHOLD = 6; // px avant de déclencher le drag
+let pendingDrag = null;   // en attente du seuil
+let pointerDrag = null;   // drag actif
+
+/* Étape 1 : surveiller si c'est un vrai drag ou un simple clic */
+function watchForDrag(noteId, item, e) {
+  pendingDrag = {
+    noteId, item,
+    startX: e.clientX,
+    startY: e.clientY,
+    rect: item.getBoundingClientRect(),
+  };
+  document.addEventListener('pointermove', onWatchMove);
+  document.addEventListener('pointerup',   onWatchUp);
+}
+
+function onWatchMove(e) {
+  if (!pendingDrag) return;
+  const dx = e.clientX - pendingDrag.startX;
+  const dy = e.clientY - pendingDrag.startY;
+  if (dx * dx + dy * dy > DRAG_THRESHOLD * DRAG_THRESHOLD) {
+    document.removeEventListener('pointermove', onWatchMove);
+    document.removeEventListener('pointerup',   onWatchUp);
+    const { noteId, item, rect, startY } = pendingDrag;
+    pendingDrag = null;
+    beginDrag(noteId, item, rect, startY - rect.top, e);
+  }
+}
+
+function onWatchUp() {
+  /* Seuil non atteint → c'est un clic, le click event se déclenche naturellement */
+  document.removeEventListener('pointermove', onWatchMove);
+  document.removeEventListener('pointerup',   onWatchUp);
+  pendingDrag = null;
+}
+
+/* Étape 2 : drag réel */
+function beginDrag(noteId, item, rect, offsetY, firstMoveEvent) {
+  const listEl = document.getElementById('notes-list');
+
+  const ghost = item.cloneNode(true);
+  ghost.classList.add('drag-ghost');
+  ghost.style.width = rect.width + 'px';
+  ghost.style.left  = rect.left + 'px';
+  ghost.style.top   = (firstMoveEvent.clientY - offsetY) + 'px';
+  document.body.appendChild(ghost);
+
+  item.classList.add('drag-placeholder');
+  pointerDrag = { noteId, item, ghost, listEl, offsetY };
+
+  document.addEventListener('pointermove',   onDragMove, { passive: false });
+  document.addEventListener('pointerup',     onDragEnd);
+  document.addEventListener('pointercancel', onDragEnd);
+}
+
+function onDragMove(e) {
+  if (!pointerDrag) return;
+  e.preventDefault();
+  const { ghost, item, listEl, offsetY } = pointerDrag;
+
+  ghost.style.top = (e.clientY - offsetY) + 'px';
+
+  const siblings = [...listEl.querySelectorAll('.note-item:not(.drag-placeholder)')];
+  let placed = false;
+  for (const sib of siblings) {
+    const r = sib.getBoundingClientRect();
+    if (e.clientY < r.top + r.height / 2) {
+      listEl.insertBefore(item, sib);
+      placed = true;
+      break;
+    }
+  }
+  if (!placed) listEl.appendChild(item);
+}
+
+async function onDragEnd(e) {
+  if (!pointerDrag) return;
+  e.preventDefault(); // empêche le click event après un drag
+  document.removeEventListener('pointermove',   onDragMove);
+  document.removeEventListener('pointerup',     onDragEnd);
+  document.removeEventListener('pointercancel', onDragEnd);
+
+  const { ghost, item, listEl } = pointerDrag;
+  pointerDrag = null;
+
+  ghost.remove();
+  item.classList.remove('drag-placeholder');
+
+  const newOrder = [...listEl.querySelectorAll('.note-item')].map(el => el.dataset.id);
+  notes.sort((a, b) => {
+    const ai = newOrder.indexOf(a.id);
+    const bi = newOrder.indexOf(b.id);
+    return (ai < 0 ? 9999 : ai) - (bi < 0 ? 9999 : bi);
+  });
+
+  await persistNotes();
+  renderNoteList(document.getElementById('search-input').value);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -549,8 +887,16 @@ function selectNote(id) {
   document.getElementById('view-toggle-toolbar').style.display = 'flex';
 
   renderNoteList(document.getElementById('search-input').value);
-  setPreviewMode(true);
+  if (isSplitMode) { renderPreviewPanel(); } else { setPreviewMode(true); }
   closeInfoPanel();
+
+  /* Restaurer la largeur de la TOC pour cette note */
+  if (isTocOpen) {
+    const tocPanel = document.getElementById('toc-panel');
+    tocPanel.style.width = (note.tocWidth || 280) + 'px';
+    renderTocPanel();
+    setupTocScrollSpy();
+  }
 
   const editor = document.getElementById('note-editor');
   editor.setSelectionRange(editor.value.length, editor.value.length);
@@ -597,7 +943,7 @@ function onTitleInput() {
 
   note.title     = document.getElementById('note-title-input').value;
   note.updatedAt = Date.now();
-  renderNoteList(document.getElementById('search-input').value);
+  updateNoteItemDisplay(note);
 
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
@@ -613,7 +959,16 @@ function onEditorInput() {
 
   note.content   = document.getElementById('note-editor').value;
   note.updatedAt = Date.now();
-  renderNoteList(document.getElementById('search-input').value);
+
+  /* Mise à jour immédiate de l'item dans la liste (léger) */
+  updateNoteItemDisplay(note);
+
+  /* Rendus coûteux debounced : preview + TOC */
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(() => {
+    if (isSplitMode) renderPreviewPanel();
+    if (isTocOpen)   renderTocPanel();
+  }, 150);
 
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
@@ -684,6 +1039,8 @@ document.addEventListener('keydown', e => {
   if (ctrl && e.key === 'b' && !isPreviewMode) { e.preventDefault(); wrapSelection(editor, '**', '**'); return; }
   if (ctrl && e.key === 'i' && !isPreviewMode) { e.preventDefault(); wrapSelection(editor, '*', '*'); return; }
   if (ctrl && e.key === 'p')           { e.preventDefault(); setPreviewMode(!isPreviewMode); return; }
+  if (ctrl && e.key === '\\')          { e.preventDefault(); setSplitMode(!isSplitMode); return; }
+  if (ctrl && e.key === 't')           { e.preventDefault(); toggleToc(); return; }
   if (e.key === 'Escape')              { closeLangPicker(); closeInfoPanel(); return; }
 
   /* Tab dans l'éditeur → insérer des espaces */
@@ -695,20 +1052,266 @@ document.addEventListener('keydown', e => {
   }
 });
 
-/* Fermer le dropdown si on clique ailleurs */
-document.addEventListener('click', e => {
-  const picker = document.getElementById('lang-picker');
-  const btn    = document.getElementById('btn-code-block');
-  if (!picker.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
-    closeLangPicker();
+
+/* ═══════════════════════════════════════════════════════════════════
+   Table des matières
+   ═══════════════════════════════════════════════════════════════════ */
+let isTocOpen = true;
+
+function parseToc(content) {
+  const headings = [];
+  let hIdx = 0;
+  content.split('\n').forEach((line, lineIdx) => {
+    const m = line.match(/^(#{1,6})\s+(.+)/);
+    if (m) headings.push({ level: m[1].length, text: m[2].trim(), lineIdx, id: `h-${hIdx++}` });
+  });
+  return headings;
+}
+
+function setActiveTocItem(idx) {
+  document.querySelectorAll('.toc-item').forEach(el =>
+    el.classList.toggle('active', parseInt(el.dataset.idx) === idx)
+  );
+}
+
+function renderTocPanel() {
+  const tocEl = document.getElementById('toc-items');
+  if (!tocEl || !isTocOpen) return;
+
+  const note = notes.find(n => n.id === currentNoteId);
+  if (!note) { tocEl.innerHTML = '<div class="toc-empty">Aucun titre trouvé.</div>'; return; }
+
+  const toc = parseToc(note.content);
+  if (toc.length === 0) {
+    tocEl.innerHTML = '<div class="toc-empty">Ajoutez des titres avec # ## ###</div>';
+    return;
   }
-});
+
+  tocEl.innerHTML = '';
+  toc.forEach((item, idx) => {
+    const el = document.createElement('div');
+    el.className = `toc-item toc-h${item.level}`;
+    el.dataset.idx = idx;
+    el.dataset.id = item.id;
+    el.textContent = item.text;
+    el.title = item.text;
+    el.addEventListener('click', () => scrollToHeading(idx, item));
+    tocEl.appendChild(el);
+  });
+}
+
+function scrollToHeading(idx, item) {
+  if (isPreviewMode || isSplitMode) {
+    const previewEl = document.getElementById('preview-panel');
+    const el = previewEl.querySelector(`#${item.id}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    const editor = document.getElementById('note-editor');
+    const lines = editor.value.split('\n');
+    const charsBefore = lines.slice(0, item.lineIdx).join('\n').length + (item.lineIdx > 0 ? 1 : 0);
+    editor.focus();
+    editor.setSelectionRange(charsBefore, charsBefore);
+    editor.scrollTop = (item.lineIdx / lines.length) * editor.scrollHeight;
+  }
+  setActiveTocItem(idx);
+}
+
+function setupTocScrollSpy() {
+  const previewEl = document.getElementById('preview-panel');
+  previewEl.removeEventListener('scroll', onTocScroll);
+  if (isTocOpen && (isPreviewMode || isSplitMode)) {
+    previewEl.addEventListener('scroll', onTocScroll);
+  }
+}
+
+function onTocScroll() {
+  if (tocScrollPending) return;
+  tocScrollPending = true;
+  requestAnimationFrame(() => {
+    tocScrollPending = false;
+    const previewEl = document.getElementById('preview-panel');
+    const headings = [...previewEl.querySelectorAll('[id^="h-"]')];
+    if (!headings.length) return;
+    const scrollTop = previewEl.scrollTop + 24;
+    let activeIdx = 0;
+    headings.forEach((h, i) => { if (h.offsetTop <= scrollTop) activeIdx = i; });
+    setActiveTocItem(activeIdx);
+  });
+}
+
+function toggleToc() {
+  isTocOpen = !isTocOpen;
+  const panel = document.getElementById('toc-panel');
+  const btn   = document.getElementById('btn-toc');
+  panel.style.display = isTocOpen ? 'flex' : 'none';
+  btn.classList.toggle('split-active', isTocOpen);
+  if (isTocOpen) { renderTocPanel(); setupTocScrollSpy(); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Gestion des thèmes
+   ═══════════════════════════════════════════════════════════════════ */
+function applyTheme(id) {
+  const theme = THEMES[id];
+  if (!theme) return;
+  currentTheme = id;
+  const root = document.documentElement;
+  Object.entries(theme.vars).forEach(([k, v]) => root.style.setProperty(k, v));
+  document.body.classList.toggle('dark-theme', theme.dark);
+  chrome.storage.local.set({ quicknotes_theme: id });
+  document.querySelectorAll('.theme-card').forEach(c =>
+    c.classList.toggle('selected', c.dataset.themeId === id)
+  );
+}
+
+function renderThemeGrid() {
+  const grid = document.getElementById('theme-grid');
+  grid.innerHTML = '';
+  Object.entries(THEMES).forEach(([id, theme]) => {
+    const v = theme.vars;
+    const card = document.createElement('div');
+    card.className = 'theme-card' + (id === currentTheme ? ' selected' : '');
+    card.dataset.themeId = id;
+
+    card.innerHTML = `
+      <div class="theme-preview-box">
+        <div class="tp-sidebar" style="background:${v['--bg-sidebar']}">
+          <div class="tp-line" style="background:${v['--bg-note-active']};width:80%"></div>
+          <div class="tp-line" style="background:${v['--text-primary']};opacity:.2;width:90%"></div>
+          <div class="tp-line" style="background:${v['--text-primary']};opacity:.15;width:70%"></div>
+        </div>
+        <div class="tp-main" style="background:${v['--bg-main']}">
+          <div class="tp-line" style="background:${v['--text-primary']};opacity:.35;width:55%"></div>
+          <div class="tp-line" style="background:${v['--text-primary']};opacity:.18;width:85%"></div>
+          <div class="tp-line" style="background:${v['--text-primary']};opacity:.18;width:70%"></div>
+        </div>
+      </div>
+      <div class="theme-card-name">${theme.name}</div>
+    `;
+    card.addEventListener('click', () => applyTheme(id));
+    grid.appendChild(card);
+  });
+}
+
+function toggleSettingsPanel() {
+  const panel = document.getElementById('settings-panel');
+  if (panel.style.display === 'none') {
+    renderThemeGrid();
+    panel.style.display = 'block';
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Export / Import
+   ═══════════════════════════════════════════════════════════════════ */
+function triggerDownload(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportAllNotes() {
+  const data = {
+    version:    1,
+    exportedAt: new Date().toISOString(),
+    notes:      notes,
+    images:     images,
+  };
+  const date = new Date().toISOString().slice(0, 10);
+  triggerDownload(JSON.stringify(data, null, 2), `quicknotes-${date}.json`, 'application/json');
+}
+
+function exportCurrentNote() {
+  const note = notes.find(n => n.id === currentNoteId);
+  if (!note) return;
+  const title   = getNoteTitle(note);
+  const content = (note.title ? `# ${note.title}\n\n` : '') + note.content;
+  const slug    = title.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_').toLowerCase().slice(0, 60);
+  triggerDownload(content, `${slug}.md`, 'text/markdown');
+}
+
+async function importFromFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if (ext === 'json') {
+    const text = await file.text();
+    let data;
+    try { data = JSON.parse(text); } catch { alert('Fichier JSON invalide.'); return; }
+    if (!Array.isArray(data.notes)) { alert('Format de sauvegarde non reconnu.'); return; }
+
+    const replace = confirm(
+      `Importer ${data.notes.length} note(s) depuis "${file.name}".\n\n` +
+      `OK → Remplacer toutes vos notes existantes\n` +
+      `Annuler → Fusionner (ajouter uniquement les nouvelles notes)`
+    );
+
+    if (replace) {
+      notes  = data.notes;
+      images = data.images || {};
+    } else {
+      const existingIds = new Set(notes.map(n => n.id));
+      notes = [...notes, ...data.notes.filter(n => !existingIds.has(n.id))];
+      if (data.images) Object.assign(images, data.images);
+    }
+
+    await persistNotes();
+    await new Promise(r => chrome.storage.local.set({ quicknotes_images: images }, r));
+
+    renderNoteList();
+    if (notes.length > 0) {
+      const sorted = [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
+      selectNote(sorted[0].id);
+    }
+    showImportToast(`${data.notes.length} note(s) importée(s)`);
+
+  } else if (ext === 'md') {
+    const text = await file.text();
+    const lines = text.split('\n');
+    let title = '', content = text;
+    if (lines[0].startsWith('# ')) {
+      title   = lines[0].slice(2).trim();
+      content = lines.slice(lines[1] === '' ? 2 : 1).join('\n');
+    }
+    const note = { id: generateId(), title, content, createdAt: Date.now(), updatedAt: Date.now() };
+    notes.unshift(note);
+    await persistNotes();
+    renderNoteList();
+    selectNote(note.id);
+    showImportToast('Note importée');
+
+  } else {
+    alert('Format non supporté. Utilisez un fichier .json ou .md');
+  }
+}
+
+function showImportToast(msg) {
+  const toast = document.getElementById('save-toast');
+  toast.textContent = msg;
+  toast.classList.add('visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.classList.remove('visible');
+    toast.textContent = 'Note sauvegardée';
+  }, 2500);
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    Initialisation
    ═══════════════════════════════════════════════════════════════════ */
 async function init() {
-  [notes] = await Promise.all([loadNotes(), loadImages()]);
+  const [loadedNotes, , savedTheme] = await Promise.all([
+    loadNotes(),
+    loadImages(),
+    new Promise(r => chrome.storage.local.get(['quicknotes_theme'], d => r(d.quicknotes_theme || 'brun'))),
+  ]);
+  notes = loadedNotes;
+  applyTheme(savedTheme);
   renderNoteList();
 
   if (notes.length > 0) {
@@ -727,6 +1330,60 @@ async function init() {
   document.getElementById('toggle-sidebar-btn').addEventListener('click', () => {
     document.getElementById('sidebar').classList.toggle('collapsed');
   });
+  /* ── Redimensionnement de la TOC ── */
+  const tocHandle = document.getElementById('toc-resize-handle');
+  const tocPanel  = document.getElementById('toc-panel');
+  let tocResizing = false;
+
+  tocHandle.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    tocResizing = true;
+    tocHandle.classList.add('resizing');
+    document.addEventListener('pointermove', onTocResize, { passive: false });
+    document.addEventListener('pointerup', onTocResizeEnd);
+  });
+
+  function onTocResize(e) {
+    if (!tocResizing) return;
+    const rect = tocPanel.getBoundingClientRect();
+    const newWidth = rect.right - e.clientX;
+    const clamped = Math.min(520, Math.max(140, newWidth));
+    tocPanel.style.width = clamped + 'px';
+  }
+
+  function onTocResizeEnd() {
+    tocResizing = false;
+    tocHandle.classList.remove('resizing');
+    document.removeEventListener('pointermove', onTocResize);
+    document.removeEventListener('pointerup', onTocResizeEnd);
+    /* Sauvegarder la largeur dans la note courante */
+    if (currentNoteId) {
+      const note = notes.find(n => n.id === currentNoteId);
+      if (note) {
+        note.tocWidth = parseInt(tocPanel.style.width);
+        persistNotes();
+      }
+    }
+  }
+
+  document.getElementById('btn-toc').classList.add('split-active');
+  document.getElementById('btn-toc').addEventListener('click', toggleToc);
+  document.getElementById('btn-split').addEventListener('click', () => setSplitMode(!isSplitMode));
+  document.getElementById('settings-btn').addEventListener('click', toggleSettingsPanel);
+  document.getElementById('close-settings-btn').addEventListener('click', () => {
+    document.getElementById('settings-panel').style.display = 'none';
+  });
+
+  document.getElementById('export-json-btn').addEventListener('click', exportAllNotes);
+  document.getElementById('export-md-btn').addEventListener('click', exportCurrentNote);
+
+  const importFileInput = document.getElementById('import-file-input');
+  document.getElementById('import-btn').addEventListener('click', () => importFileInput.click());
+  importFileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) { importFromFile(file); importFileInput.value = ''; }
+  });
+
   document.getElementById('fullscreen-btn').addEventListener('click', () => {
     document.fullscreenElement
       ? document.exitFullscreen()
@@ -750,21 +1407,63 @@ async function init() {
   });
 
   document.getElementById('btn-heading').addEventListener('click', () => {
+    document.getElementById('heading-picker').classList.toggle('open');
+  });
+
+  document.getElementById('heading-picker').addEventListener('click', e => {
+    const item = e.target.closest('.heading-picker-item');
+    if (!item) return;
+    const level = parseInt(item.dataset.level);
     const editor = document.getElementById('note-editor');
     const start = editor.selectionStart;
     const lineStart = editor.value.lastIndexOf('\n', start - 1) + 1;
-    const line = editor.value.slice(lineStart, editor.value.indexOf('\n', start));
-    const isHeading = /^#{1,3}\s/.test(line);
-    if (isHeading) {
-      editor.setRangeText(line.replace(/^#{1,3}\s/, ''), lineStart, lineStart + line.length, 'end');
-    } else {
-      editor.setRangeText('# ' + line, lineStart, lineStart + line.length, 'end');
-    }
+    const lineEnd = editor.value.indexOf('\n', start);
+    const lineEndPos = lineEnd === -1 ? editor.value.length : lineEnd;
+    const line = editor.value.slice(lineStart, lineEndPos);
+    const cleanLine = line.replace(/^#{1,6}\s*/, '');
+    const newLine = '#'.repeat(level) + ' ' + cleanLine;
+    editor.setRangeText(newLine, lineStart, lineEndPos, 'end');
+    editor.focus();
     onEditorInput();
+    document.getElementById('heading-picker').classList.remove('open');
+  });
+
+  /* Fermer les dropdowns si clic ailleurs (listener unique) */
+  document.addEventListener('click', e => {
+    const langPicker = document.getElementById('lang-picker');
+    const langBtn    = document.getElementById('btn-code-block');
+    if (!langPicker.contains(e.target) && e.target !== langBtn && !langBtn.contains(e.target)) {
+      closeLangPicker();
+    }
+    const hPicker = document.getElementById('heading-picker');
+    const hBtn    = document.getElementById('btn-heading');
+    if (!hPicker.contains(e.target) && !hBtn.contains(e.target)) {
+      hPicker.classList.remove('open');
+    }
   });
 
   document.getElementById('btn-edit-mode').addEventListener('click', () => setPreviewMode(false));
   document.getElementById('btn-preview-mode').addEventListener('click', () => setPreviewMode(true));
+
+  /* ── Emojis ── */
+  document.getElementById('emoji-bar').addEventListener('click', e => {
+    const btn = e.target.closest('.emoji-btn');
+    if (!btn) return;
+    if (isSplitMode || !isPreviewMode) {
+      const editor = document.getElementById('note-editor');
+      const pos = editor.selectionStart;
+      editor.setRangeText(btn.dataset.emoji, pos, editor.selectionEnd, 'end');
+      editor.focus();
+      onEditorInput();
+    } else {
+      setPreviewMode(false);
+      const editor = document.getElementById('note-editor');
+      const pos = editor.value.length;
+      editor.setRangeText(btn.dataset.emoji, pos, pos, 'end');
+      editor.focus();
+      onEditorInput();
+    }
+  });
 
   /* Sélection d'un langage dans le dropdown */
   document.getElementById('lang-picker').addEventListener('click', e => {
