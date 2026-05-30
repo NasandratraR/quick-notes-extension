@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Quick Notes",
+  "version": "1.0.0",
+  "description": "Application de prise de notes rapides",
+  "action": {
+    "default_title": "Quick Notes"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["storage", "tabs", "unlimitedStorage"]
+}
