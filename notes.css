@@ -700,6 +700,18 @@ html, body {
   border-radius: 2px;
 }
 
+#preview-panel mark {
+  background: rgba(255, 200, 0, 0.45);
+  color: inherit;
+  border-radius: 2px;
+}
+
+#preview-panel mark.current {
+  background: rgba(255, 120, 0, 0.65);
+  color: inherit;
+  border-radius: 2px;
+}
+
 /* ── Barre de recherche dans l'éditeur ──────────────────────────────── */
 .editor-search-bar {
   display: flex;

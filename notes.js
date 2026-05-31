@@ -190,6 +190,7 @@ function closeEditorSearch() {
   document.getElementById('editor-search-input').value = '';
   document.getElementById('editor-search-count').textContent = '';
   document.getElementById('editor-highlight-layer').innerHTML = '';
+  clearPreviewHighlights();
   editorSearchQuery   = '';
   editorSearchMatches = [];
   editorSearchIdx     = -1;
@@ -209,6 +210,7 @@ function updateEditorSearch() {
     layer.innerHTML     = '';
     countEl.textContent = '';
     input.classList.remove('no-match');
+    clearPreviewHighlights();
     return;
   }
 
@@ -218,17 +220,25 @@ function updateEditorSearch() {
 
   if (editorSearchMatches.length === 0) {
     editorSearchIdx = -1;
-    layer.innerHTML = esc(text);
+    layer.innerHTML = '';
     countEl.textContent = '0 résultat';
     input.classList.add('no-match');
+    clearPreviewHighlights();
     return;
   }
 
   input.classList.remove('no-match');
   if (editorSearchIdx < 0 || editorSearchIdx >= editorSearchMatches.length) editorSearchIdx = 0;
   countEl.textContent = `${editorSearchIdx + 1} / ${editorSearchMatches.length}`;
-  renderHighlightLayer(text);
-  scrollEditorToMatch();
+
+  if (!isPreviewMode) {
+    renderHighlightLayer(text);
+    scrollEditorToMatch();
+  }
+  if (isPreviewMode || isSplitMode) {
+    highlightPreviewPanel();
+    scrollPreviewToMatch();
+  }
 }
 
 function renderHighlightLayer(text) {
@@ -255,8 +265,16 @@ function navigateEditorSearch(dir) {
   editorSearchIdx = (editorSearchIdx + dir + editorSearchMatches.length) % editorSearchMatches.length;
   document.getElementById('editor-search-count').textContent =
     `${editorSearchIdx + 1} / ${editorSearchMatches.length}`;
-  renderHighlightLayer(document.getElementById('note-editor').value);
-  scrollEditorToMatch(true);
+
+  if (!isPreviewMode) {
+    renderHighlightLayer(document.getElementById('note-editor').value);
+    scrollEditorToMatch(true);
+  }
+  if (isPreviewMode || isSplitMode) {
+    highlightPreviewPanel();
+    scrollPreviewToMatch();
+  }
+
   document.getElementById('editor-search-input').focus();
 }
 
@@ -280,6 +298,52 @@ function syncHighlightScroll() {
   const editor = document.getElementById('note-editor');
   const layer  = document.getElementById('editor-highlight-layer');
   layer.scrollTop = editor.scrollTop;
+}
+
+function clearPreviewHighlights() {
+  document.getElementById('preview-panel').querySelectorAll('mark').forEach(mark => {
+    const parent = mark.parentNode;
+    if (!parent) return;
+    parent.replaceChild(document.createTextNode(mark.textContent), mark);
+    parent.normalize();
+  });
+}
+
+function highlightPreviewPanel() {
+  const panel = document.getElementById('preview-panel');
+  clearPreviewHighlights();
+  if (!editorSearchQuery) return;
+
+  const re = new RegExp(escapeRegex(editorSearchQuery), 'gi');
+  const walker = document.createTreeWalker(panel, NodeFilter.SHOW_TEXT);
+  const textNodes = [];
+  let node;
+  while ((node = walker.nextNode())) textNodes.push(node);
+
+  let globalIdx = 0;
+  textNodes.forEach(textNode => {
+    const text = textNode.nodeValue;
+    const matches = [...text.matchAll(re)];
+    if (!matches.length) return;
+    const frag = document.createDocumentFragment();
+    let prev = 0;
+    matches.forEach(m => {
+      if (m.index > prev) frag.appendChild(document.createTextNode(text.slice(prev, m.index)));
+      const mark = document.createElement('mark');
+      mark.textContent = m[0];
+      if (globalIdx === editorSearchIdx) mark.classList.add('current');
+      frag.appendChild(mark);
+      prev = m.index + m[0].length;
+      globalIdx++;
+    });
+    if (prev < text.length) frag.appendChild(document.createTextNode(text.slice(prev)));
+    textNode.parentNode.replaceChild(frag, textNode);
+  });
+}
+
+function scrollPreviewToMatch() {
+  const current = document.getElementById('preview-panel').querySelector('mark.current');
+  if (current) current.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -807,6 +871,7 @@ function renderPreviewPanel() {
   setupImageResize();
   setupTableResize();
   if (isTocOpen) { renderTocPanel(); setupTocScrollSpy(); }
+  if (editorSearchQuery) highlightPreviewPanel();
 }
 
 /* Poignée de redimensionnement des images en aperçu */
@@ -1424,8 +1489,7 @@ document.addEventListener('keydown', e => {
   if (ctrl && e.key === 'n')           { e.preventDefault(); createNote(); return; }
   if (ctrl && e.key === 'f') {
     e.preventDefault();
-    const editorEl = document.getElementById('note-editor');
-    if (currentNoteId && document.activeElement === editorEl) {
+    if (currentNoteId) {
       openEditorSearch();
     } else {
       document.getElementById('search-input').focus();
