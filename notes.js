@@ -167,6 +167,122 @@ let currentFontWeight = 400;
 let tocScrollPending = false;
 
 /* ═══════════════════════════════════════════════════════════════════
+   Recherche dans l'éditeur
+   ═══════════════════════════════════════════════════════════════════ */
+let editorSearchQuery   = '';
+let editorSearchMatches = [];
+let editorSearchIdx     = -1;
+
+function openEditorSearch() {
+  const bar    = document.getElementById('editor-search-bar');
+  const input  = document.getElementById('editor-search-input');
+  const editor = document.getElementById('note-editor');
+  bar.style.display = 'flex';
+  const sel = editor.value.slice(editor.selectionStart, editor.selectionEnd).trim();
+  if (sel && sel.length < 120) input.value = sel;
+  input.select();
+  input.focus();
+  updateEditorSearch();
+}
+
+function closeEditorSearch() {
+  document.getElementById('editor-search-bar').style.display = 'none';
+  document.getElementById('editor-search-input').value = '';
+  document.getElementById('editor-search-count').textContent = '';
+  document.getElementById('editor-highlight-layer').innerHTML = '';
+  editorSearchQuery   = '';
+  editorSearchMatches = [];
+  editorSearchIdx     = -1;
+}
+
+function updateEditorSearch() {
+  const input   = document.getElementById('editor-search-input');
+  const editor  = document.getElementById('note-editor');
+  const layer   = document.getElementById('editor-highlight-layer');
+  const countEl = document.getElementById('editor-search-count');
+
+  editorSearchQuery = input.value;
+
+  if (!editorSearchQuery) {
+    editorSearchMatches = [];
+    editorSearchIdx     = -1;
+    layer.innerHTML     = '';
+    countEl.textContent = '';
+    input.classList.remove('no-match');
+    return;
+  }
+
+  const text = editor.value;
+  const re   = new RegExp(escapeRegex(editorSearchQuery), 'gi');
+  editorSearchMatches = [...text.matchAll(re)].map(m => m.index);
+
+  if (editorSearchMatches.length === 0) {
+    editorSearchIdx = -1;
+    layer.innerHTML = esc(text);
+    countEl.textContent = '0 résultat';
+    input.classList.add('no-match');
+    return;
+  }
+
+  input.classList.remove('no-match');
+  if (editorSearchIdx < 0 || editorSearchIdx >= editorSearchMatches.length) editorSearchIdx = 0;
+  countEl.textContent = `${editorSearchIdx + 1} / ${editorSearchMatches.length}`;
+  renderHighlightLayer(text);
+  scrollEditorToMatch();
+}
+
+function renderHighlightLayer(text) {
+  const layer = document.getElementById('editor-highlight-layer');
+  if (!editorSearchQuery || !editorSearchMatches.length) { layer.innerHTML = ''; return; }
+
+  let html = '';
+  let prev = 0;
+  let i    = 0;
+  const re = new RegExp(escapeRegex(editorSearchQuery), 'gi');
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    html += esc(text.slice(prev, m.index));
+    html += `<mark${i === editorSearchIdx ? ' class="current"' : ''}>${esc(m[0])}</mark>`;
+    prev = m.index + m[0].length;
+    i++;
+  }
+  html += esc(text.slice(prev));
+  layer.innerHTML = html;
+}
+
+function navigateEditorSearch(dir) {
+  if (!editorSearchMatches.length) return;
+  editorSearchIdx = (editorSearchIdx + dir + editorSearchMatches.length) % editorSearchMatches.length;
+  document.getElementById('editor-search-count').textContent =
+    `${editorSearchIdx + 1} / ${editorSearchMatches.length}`;
+  renderHighlightLayer(document.getElementById('note-editor').value);
+  scrollEditorToMatch(true);
+  document.getElementById('editor-search-input').focus();
+}
+
+function scrollEditorToMatch(grabFocus = false) {
+  if (editorSearchIdx < 0 || !editorSearchMatches.length) return;
+  const editor     = document.getElementById('note-editor');
+  const matchStart = editorSearchMatches[editorSearchIdx];
+  const matchEnd   = matchStart + editorSearchQuery.length;
+  if (grabFocus) {
+    editor.focus();
+    editor.setSelectionRange(matchStart, matchEnd);
+  }
+  const lines      = editor.value.slice(0, matchStart).split('\n');
+  const totalLines = editor.value.split('\n').length || 1;
+  const target     = (lines.length / totalLines) * editor.scrollHeight - editor.clientHeight / 3;
+  editor.scrollTop = Math.max(0, target);
+  syncHighlightScroll();
+}
+
+function syncHighlightScroll() {
+  const editor = document.getElementById('note-editor');
+  const layer  = document.getElementById('editor-highlight-layer');
+  layer.scrollTop = editor.scrollTop;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    Stockage
    ═══════════════════════════════════════════════════════════════════ */
 function loadNotes() {
@@ -865,19 +981,20 @@ function setSplitMode(active) {
    ═══════════════════════════════════════════════════════════════════ */
 function setPreviewMode(preview) {
   isPreviewMode = preview;
-  const editorEl  = document.getElementById('note-editor');
-  const previewEl = document.getElementById('preview-panel');
-  const btnEdit    = document.getElementById('btn-edit-mode');
-  const btnPreview = document.getElementById('btn-preview-mode');
+  const editorEl     = document.getElementById('note-editor');
+  const wrapperEl    = document.querySelector('.editor-wrapper');
+  const previewEl    = document.getElementById('preview-panel');
+  const btnEdit      = document.getElementById('btn-edit-mode');
+  const btnPreview   = document.getElementById('btn-preview-mode');
 
   if (preview) {
     renderPreviewPanel();
-    editorEl.style.display  = 'none';
+    if (wrapperEl) wrapperEl.style.display = 'none';
     previewEl.style.display = 'block';
     btnEdit.classList.remove('active');
     btnPreview.classList.add('active');
   } else {
-    editorEl.style.display  = '';
+    if (wrapperEl) wrapperEl.style.display = '';
     previewEl.style.display = 'none';
     btnEdit.classList.add('active');
     btnPreview.classList.remove('active');
@@ -1122,6 +1239,7 @@ function selectNote(id) {
   if (!note) return;
 
   currentNoteId = id;
+  closeEditorSearch();
   document.getElementById('note-editor').value      = note.content;
   document.getElementById('note-title-input').value = note.title || '';
   document.getElementById('main-content').style.display        = 'flex';
@@ -1202,8 +1320,8 @@ function onEditorInput() {
   note.content   = document.getElementById('note-editor').value;
   note.updatedAt = Date.now();
 
-  /* Mise à jour immédiate de l'item dans la liste (léger) */
   updateNoteItemDisplay(note);
+  if (editorSearchQuery) updateEditorSearch();
 
   /* Rendus coûteux debounced : preview + TOC */
   clearTimeout(renderTimer);
@@ -1304,7 +1422,16 @@ document.addEventListener('keydown', e => {
   const editor = document.getElementById('note-editor');
 
   if (ctrl && e.key === 'n')           { e.preventDefault(); createNote(); return; }
-  if (ctrl && e.key === 'f')           { e.preventDefault(); document.getElementById('search-input').focus(); return; }
+  if (ctrl && e.key === 'f') {
+    e.preventDefault();
+    const editorEl = document.getElementById('note-editor');
+    if (currentNoteId && document.activeElement === editorEl) {
+      openEditorSearch();
+    } else {
+      document.getElementById('search-input').focus();
+    }
+    return;
+  }
   if (ctrl && e.shiftKey && e.key==='K') { e.preventDefault(); toggleLangPicker(); return; }
   if (ctrl && e.shiftKey && e.key==='U') { e.preventDefault(); insertList(false); return; }
   if (ctrl && e.shiftKey && e.key==='O') { e.preventDefault(); insertList(true);  return; }
@@ -1314,7 +1441,17 @@ document.addEventListener('keydown', e => {
   if (ctrl && e.key === 'p')           { e.preventDefault(); setPreviewMode(!isPreviewMode); return; }
   if (ctrl && e.key === '\\')          { e.preventDefault(); setSplitMode(!isSplitMode); return; }
   if (ctrl && e.key === 't')           { e.preventDefault(); toggleToc(); return; }
-  if (e.key === 'Escape')              { closeLangPicker(); closeInfoPanel(); return; }
+  if (e.key === 'Escape') {
+    const searchBar = document.getElementById('editor-search-bar');
+    if (searchBar && searchBar.style.display !== 'none') {
+      closeEditorSearch();
+      document.getElementById('note-editor').focus();
+      return;
+    }
+    closeLangPicker();
+    closeInfoPanel();
+    return;
+  }
 
   /* Tab dans l'éditeur → insérer des espaces */
   if (e.key === 'Tab' && document.activeElement === editor) {
@@ -1872,8 +2009,19 @@ async function init() {
     if (e.key === 'Enter') { e.preventDefault(); document.getElementById('note-editor').focus(); }
   });
 
+  /* ── Recherche dans l'éditeur ── */
+  document.getElementById('editor-search-input').addEventListener('input', updateEditorSearch);
+  document.getElementById('editor-search-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); navigateEditorSearch(e.shiftKey ? -1 : 1); }
+    if (e.key === 'Escape') { closeEditorSearch(); document.getElementById('note-editor').focus(); }
+  });
+  document.getElementById('editor-search-prev').addEventListener('click', () => navigateEditorSearch(-1));
+  document.getElementById('editor-search-next').addEventListener('click', () => navigateEditorSearch(1));
+  document.getElementById('editor-search-close').addEventListener('click', closeEditorSearch);
+
   /* ── Éditeur ── */
   document.getElementById('note-editor').addEventListener('input', onEditorInput);
+  document.getElementById('note-editor').addEventListener('scroll', syncHighlightScroll);
 
   /* ── Recherche ── */
   const searchInput = document.getElementById('search-input');

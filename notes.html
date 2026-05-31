@@ -209,9 +209,24 @@
             <input type="text" id="note-title-input" placeholder="Titre de la note..." autocomplete="off" spellcheck="true">
           </div>
 
+          <!-- Barre de recherche dans l'éditeur -->
+          <div class="editor-search-bar" id="editor-search-bar" style="display:none">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="editor-search-input" placeholder="Rechercher dans la note…" autocomplete="off" spellcheck="false">
+            <span class="editor-search-count" id="editor-search-count"></span>
+            <button class="search-nav-btn" id="editor-search-prev" title="Précédent (Shift+Entrée)">↑</button>
+            <button class="search-nav-btn" id="editor-search-next" title="Suivant (Entrée)">↓</button>
+            <button class="search-close-btn" id="editor-search-close" title="Fermer (Échap)">×</button>
+          </div>
+
           <!-- Éditeur et aperçu -->
           <div class="editor-preview-wrapper">
-            <textarea id="note-editor" spellcheck="false" placeholder="Commencer à écrire...&#10;&#10;Utilisez ``` pour un bloc de code, `backticks` pour du code inline."></textarea>
+            <div class="editor-wrapper">
+              <div id="editor-highlight-layer" aria-hidden="true"></div>
+              <textarea id="note-editor" spellcheck="false" placeholder="Commencer à écrire...&#10;&#10;Utilisez ``` pour un bloc de code, `backticks` pour du code inline."></textarea>
+            </div>
             <div id="preview-panel"></div>
             <div class="toc-panel" id="toc-panel" style="display:flex">
               <div class="toc-resize-handle" id="toc-resize-handle"></div>
