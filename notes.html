@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <title>Quick Notes</title>
   <link rel="stylesheet" href="notes.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Indie+Flower&family=Lora:ital,wght@0,400;0,600;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Patrick+Hand&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="app">
@@ -131,6 +134,19 @@
               <div class="heading-picker-item" data-level="5"><span class="hp-h5">H5</span><em>Petit titre</em></div>
               <div class="heading-picker-item" data-level="6"><span class="hp-h6">H6</span><em>Micro titre</em></div>
             </div>
+            <button class="fmt-btn" id="btn-ul" title="Liste à puces (Ctrl+Shift+U)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+                <line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/>
+                <circle cx="4" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none"/>
+              </svg>
+            </button>
+            <button class="fmt-btn" id="btn-ol" title="Liste numérotée (Ctrl+Shift+O)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+                <line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/>
+                <polyline points="3.5,5 4.5,4.5 4.5,9.5" stroke-width="1.5"/><line x1="3.5" y1="9.5" x2="5.5" y2="9.5" stroke-width="1.5"/>
+                <path d="M3.5,14 C3.5,13 5.5,13 5.5,14.5 C5.5,16 3.5,16.5 3.5,18.5 L5.5,18.5" stroke-width="1.5"/>
+              </svg>
+            </button>
             <div class="fmt-sep"></div>
             <div class="emoji-bar" id="emoji-bar">
               <button class="emoji-btn" data-emoji="🔴" title="🔴">🔴</button>
@@ -150,6 +166,25 @@
               <button class="emoji-btn" data-emoji="🔹" title="🔹">🔹</button>
               <button class="emoji-btn" data-emoji="⭐" title="⭐">⭐</button>
               <button class="emoji-btn" data-emoji="🚀" title="🚀">🚀</button>
+            </div>
+            <div class="fmt-spacer"></div>
+            <div class="fmt-sep"></div>
+            <div class="font-family-wrap">
+              <button class="fmt-btn font-family-btn" id="btn-font-family" title="Police d'écriture">
+                <span id="font-family-label">Défaut</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="10" height="10"><polyline points="6,9 12,15 18,9"/></svg>
+              </button>
+              <div class="font-family-picker" id="font-family-picker"></div>
+            </div>
+            <div class="font-ctrl-group" title="Taille de la police">
+              <button class="font-ctrl-btn" id="fmt-size-dec">A−</button>
+              <span class="font-ctrl-val" id="fmt-size-val">13px</span>
+              <button class="font-ctrl-btn" id="fmt-size-inc">A+</button>
+            </div>
+            <div class="font-ctrl-group" title="Graisse de la police">
+              <button class="font-ctrl-btn" id="fmt-weight-dec">−</button>
+              <span class="font-ctrl-val" id="fmt-weight-val">Normal</span>
+              <button class="font-ctrl-btn" id="fmt-weight-inc">+</button>
             </div>
             <!-- Dropdown de sélection de langage -->
             <div class="lang-picker" id="lang-picker">
@@ -176,7 +211,7 @@
 
           <!-- Éditeur et aperçu -->
           <div class="editor-preview-wrapper">
-            <textarea id="note-editor" spellcheck="true" placeholder="Commencer à écrire...&#10;&#10;Utilisez ``` pour un bloc de code, `backticks` pour du code inline."></textarea>
+            <textarea id="note-editor" spellcheck="false" placeholder="Commencer à écrire...&#10;&#10;Utilisez ``` pour un bloc de code, `backticks` pour du code inline."></textarea>
             <div id="preview-panel"></div>
             <div class="toc-panel" id="toc-panel" style="display:flex">
               <div class="toc-resize-handle" id="toc-resize-handle"></div>

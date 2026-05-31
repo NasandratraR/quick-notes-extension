@@ -109,6 +109,47 @@ const THEMES = {
 };
 
 /* ═══════════════════════════════════════════════════════════════════
+   Polices
+   ═══════════════════════════════════════════════════════════════════ */
+const FONTS = {
+  default: {
+    name: 'Défaut',
+    family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif",
+    preview: 'Aa — Belle note',
+  },
+  indie: {
+    name: 'Indie Flower',
+    family: "'Indie Flower', cursive",
+    preview: 'Aa — Belle note',
+  },
+  merriweather: {
+    name: 'Merriweather',
+    family: "'Merriweather', serif",
+    preview: 'Aa — Belle note',
+  },
+  lora: {
+    name: 'Lora',
+    family: "'Lora', serif",
+    preview: 'Aa — Belle note',
+  },
+  architects: {
+    name: 'Architects Daughter',
+    family: "'Architects Daughter', cursive",
+    preview: 'Aa — Belle note',
+  },
+  patrick: {
+    name: 'Patrick Hand',
+    family: "'Patrick Hand', cursive",
+    preview: 'Aa — Belle note',
+  },
+  opensans: {
+    name: 'Open Sans',
+    family: "'Open Sans', sans-serif",
+    preview: 'Aa — Belle note',
+  },
+};
+
+/* ═══════════════════════════════════════════════════════════════════
    État global
    ═══════════════════════════════════════════════════════════════════ */
 let notes = [];
@@ -119,7 +160,10 @@ let renderTimer = null;
 let toastTimer = null;
 let isPreviewMode = false;
 let isSplitMode   = false;
-let currentTheme  = 'brun';
+let currentTheme      = 'brun';
+let currentFont       = 'default';
+let currentFontSize   = 13;
+let currentFontWeight = 400;
 let tocScrollPending = false;
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -225,6 +269,25 @@ function normalizeLang(lang) {
   if (!lang) return 'generic';
   const l = lang.toLowerCase().trim();
   return LANG_ALIAS[l] || l;
+}
+
+/* ── Helpers pour les tableaux Markdown ── */
+function parseTableRow(line) {
+  return line.split('|')
+    .map(c => c.trim())
+    .filter((c, i, arr) => !(i === 0 && c === '') && !(i === arr.length - 1 && c === ''));
+}
+
+function isSeparatorRow(line) {
+  const cells = parseTableRow(line);
+  return cells.length > 0 && cells.every(c => /^:?-+:?$/.test(c));
+}
+
+function getColAlign(cell) {
+  const c = cell.trim();
+  if (c.startsWith(':') && c.endsWith(':')) return 'center';
+  if (c.endsWith(':')) return 'right';
+  return 'left';
 }
 
 /* Tokeniseur caractère par caractère */
@@ -421,6 +484,81 @@ function renderMarkdown(text) {
       continue;
     }
 
+    /* Tableaux Markdown */
+    if (/^\|/.test(line)) {
+      const tableLines = [];
+      while (i < lines.length && /^\|/.test(lines[i])) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      if (tableLines.length >= 2 && isSeparatorRow(tableLines[1])) {
+        const headers  = parseTableRow(tableLines[0]);
+        const aligns   = parseTableRow(tableLines[1]).map(getColAlign);
+        const dataRows = tableLines.slice(2).map(parseTableRow);
+        const key      = esc(headers.join('|'));
+
+        const colgroup = `<colgroup>${headers.map(() => '<col>').join('')}</colgroup>`;
+        const ths = headers.map((h, j) =>
+          `<th style="text-align:${aligns[j] || 'left'}">${inlineFormat(h)}` +
+          (j < headers.length - 1 ? `<div class="col-resize-handle"></div>` : '') +
+          `</th>`
+        ).join('');
+        const trs = dataRows.map(row =>
+          `<tr>${row.map((cell, j) =>
+            `<td style="text-align:${aligns[j] || 'left'}">${inlineFormat(cell)}</td>`
+          ).join('')}</tr>`
+        ).join('');
+
+        blocks.push(
+          `<div class="md-table-outer">` +
+          `<div class="md-table-wrapper"><table class="md-table" data-key="${key}">` +
+          colgroup +
+          `<thead><tr>${ths}</tr></thead>` +
+          (trs ? `<tbody>${trs}</tbody>` : '') +
+          `</table></div>` +
+          `<div class="tbl-width-handle" title="Redimensionner le tableau"></div>` +
+          `</div>`
+        );
+      } else {
+        tableLines.forEach(l => blocks.push(`<p>${inlineFormat(l)}</p>`));
+      }
+      continue;
+    }
+
+    /* Tables TSV (données séparées par tabulations — copier-coller depuis un tableur) */
+    if (line.includes('\t')) {
+      const tsvLines = [];
+      while (i < lines.length && lines[i].includes('\t')) {
+        tsvLines.push(lines[i]);
+        i++;
+      }
+      const rows = tsvLines.map(l => l.split('\t').map(c => c.trim()));
+      const colCount = Math.max(...rows.map(r => r.length));
+      if (tsvLines.length >= 2 && colCount >= 2) {
+        const headers  = rows[0];
+        const dataRows = rows.slice(1);
+        const key      = esc(headers.join('|').slice(0, 100));
+        const pad = row => { const r = [...row]; while (r.length < colCount) r.push(''); return r; };
+        const colgroup = `<colgroup>${Array(colCount).fill('<col>').join('')}</colgroup>`;
+        const ths = pad(headers).map(h => `<th>${inlineFormat(h)}</th>`).join('');
+        const trs = dataRows.map(row =>
+          `<tr>${pad(row).map(cell => `<td>${inlineFormat(cell)}</td>`).join('')}</tr>`
+        ).join('');
+        blocks.push(
+          `<div class="md-table-outer">` +
+          `<div class="md-table-wrapper"><table class="md-table" data-key="${key}">` +
+          colgroup + `<thead><tr>${ths}</tr></thead>` +
+          (trs ? `<tbody>${trs}</tbody>` : '') +
+          `</table></div>` +
+          `<div class="tbl-width-handle" title="Redimensionner le tableau"></div>` +
+          `</div>`
+        );
+      } else {
+        tsvLines.forEach(l => blocks.push(`<p>${inlineFormat(l)}</p>`));
+      }
+      continue;
+    }
+
     /* Listes non ordonnées */
     if (/^[-*+]\s/.test(line)) {
       const items = [];
@@ -551,6 +689,7 @@ function renderPreviewPanel() {
   });
 
   setupImageResize();
+  setupTableResize();
   if (isTocOpen) { renderTocPanel(); setupTocScrollSpy(); }
 }
 
@@ -586,6 +725,109 @@ function setupImageResize() {
         persistNotes();
       }
 
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup',   onUp);
+    });
+  });
+}
+
+/* Redimensionnement des colonnes et de la largeur globale du tableau */
+function setupTableResize() {
+  const previewEl = document.getElementById('preview-panel');
+  const note = currentNoteId ? notes.find(n => n.id === currentNoteId) : null;
+  if (!note) return;
+  const stored = note.tableWidths || {};
+
+  previewEl.querySelectorAll('.md-table-outer').forEach(outer => {
+    const wrapper = outer.querySelector('.md-table-wrapper');
+    const table   = outer.querySelector('.md-table');
+    const wHandle = outer.querySelector('.tbl-width-handle');
+    if (!table || !wrapper) return;
+
+    const key  = table.dataset.key;
+    const cols = [...table.querySelectorAll('col')];
+    const ths  = [...table.querySelectorAll('thead th')];
+    if (!cols.length || !ths.length) return;
+
+    /* Charger les données (format objet ou tableau legacy) */
+    const raw      = stored[key];
+    const storedCols  = Array.isArray(raw) ? raw : (raw?.cols  || null);
+    const storedOuterW = raw?.outerW || null;
+
+    /* Mesurer les largeurs naturelles AVANT de passer en fixed */
+    const naturalWidths = ths.map(th => Math.round(th.getBoundingClientRect().width));
+    const widths = storedCols || naturalWidths;
+    widths.forEach((w, i) => { if (cols[i]) cols[i].style.width = w + 'px'; });
+    table.style.tableLayout = 'fixed';
+    /* Pas de table.style.width : la table se dimensionne exactement à la somme des colonnes */
+    outer.style.width = storedOuterW ? storedOuterW + 'px' : 'fit-content';
+
+    function save() {
+      if (!currentNoteId) return;
+      const n = notes.find(n => n.id === currentNoteId);
+      if (!n) return;
+      if (!n.tableWidths) n.tableWidths = {};
+      n.tableWidths[key] = {
+        cols:   cols.map(col => parseInt(col.style.width) || 80),
+        outerW: Math.round(outer.getBoundingClientRect().width),
+      };
+      persistNotes();
+    }
+
+    function makeOverlay(cursor) {
+      const ov = document.createElement('div');
+      ov.style.cssText = `position:fixed;inset:0;z-index:9999;cursor:${cursor};`;
+      document.body.appendChild(ov);
+      return ov;
+    }
+
+    /* ── Poignées de colonnes ── */
+    ths.forEach((th, colIdx) => {
+      if (colIdx >= ths.length - 1) return;
+      const handle = th.querySelector('.col-resize-handle');
+      if (!handle) return;
+
+      handle.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const ov     = makeOverlay('col-resize');
+        const startX = e.clientX;
+        const startW = parseInt(cols[colIdx].style.width) || 80;
+
+        function onMove(ev) {
+          const newW = Math.max(40, startW + ev.clientX - startX);
+          cols[colIdx].style.width = newW + 'px';
+          /* table et outer (fit-content) s'adaptent automatiquement */
+        }
+        function onUp() {
+          ov.remove();
+          document.removeEventListener('pointermove', onMove);
+          document.removeEventListener('pointerup',   onUp);
+          save();
+        }
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup',   onUp);
+      });
+    });
+
+    /* ── Poignée de largeur globale du tableau ── */
+    if (!wHandle) return;
+    wHandle.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const ov     = makeOverlay('ew-resize');
+      const startX = e.clientX;
+      const startW = Math.round(outer.getBoundingClientRect().width);
+
+      function onMove(ev) {
+        outer.style.width = Math.max(120, startW + ev.clientX - startX) + 'px';
+      }
+      function onUp() {
+        ov.remove();
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup',   onUp);
+        save();
+      }
       document.addEventListener('pointermove', onMove);
       document.addEventListener('pointerup',   onUp);
     });
@@ -1026,6 +1268,35 @@ function toggleLangPicker() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   Listes à puces / numérotées
+   ═══════════════════════════════════════════════════════════════════ */
+function insertList(ordered) {
+  const editor = document.getElementById('note-editor');
+  const val    = editor.value;
+  const selStart = editor.selectionStart;
+  const selEnd   = editor.selectionEnd;
+
+  /* Trouver le début de la première ligne sélectionnée */
+  const lineStart = val.lastIndexOf('\n', selStart - 1) + 1;
+
+  /* Trouver la fin de la dernière ligne sélectionnée */
+  const lookFrom = selEnd > selStart ? selEnd - 1 : selStart;
+  const nlPos    = val.indexOf('\n', lookFrom);
+  const lineEnd  = nlPos === -1 ? val.length : nlPos;
+
+  const lines = val.slice(lineStart, lineEnd).split('\n');
+  let counter = 1;
+  const newLines = lines.map(line => {
+    const clean = line.replace(/^(\d+\.\s+|[-*+]\s+)/, '');
+    return ordered ? `${counter++}. ${clean}` : `- ${clean}`;
+  });
+
+  editor.setRangeText(newLines.join('\n'), lineStart, lineEnd, 'select');
+  editor.focus();
+  onEditorInput();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    Raccourcis clavier
    ═══════════════════════════════════════════════════════════════════ */
 document.addEventListener('keydown', e => {
@@ -1035,6 +1306,8 @@ document.addEventListener('keydown', e => {
   if (ctrl && e.key === 'n')           { e.preventDefault(); createNote(); return; }
   if (ctrl && e.key === 'f')           { e.preventDefault(); document.getElementById('search-input').focus(); return; }
   if (ctrl && e.shiftKey && e.key==='K') { e.preventDefault(); toggleLangPicker(); return; }
+  if (ctrl && e.shiftKey && e.key==='U') { e.preventDefault(); insertList(false); return; }
+  if (ctrl && e.shiftKey && e.key==='O') { e.preventDefault(); insertList(true);  return; }
   if (ctrl && e.key === 'e')           { e.preventDefault(); wrapSelection(editor, '`', '`'); return; }
   if (ctrl && e.key === 'b' && !isPreviewMode) { e.preventDefault(); wrapSelection(editor, '**', '**'); return; }
   if (ctrl && e.key === 'i' && !isPreviewMode) { e.preventDefault(); wrapSelection(editor, '*', '*'); return; }
@@ -1193,6 +1466,66 @@ function renderThemeGrid() {
   });
 }
 
+function applyFont(id) {
+  const font = FONTS[id];
+  if (!font) return;
+  currentFont = id;
+  document.documentElement.style.setProperty('--editor-font', font.family);
+  chrome.storage.local.set({ quicknotes_font: id });
+  const label = document.getElementById('font-family-label');
+  if (label) label.textContent = font.name;
+  document.querySelectorAll('.font-family-item').forEach(c =>
+    c.classList.toggle('selected', c.dataset.fontId === id)
+  );
+}
+
+function renderFontFamilyPicker() {
+  const picker = document.getElementById('font-family-picker');
+  if (!picker) return;
+  picker.innerHTML = '';
+  Object.entries(FONTS).forEach(([id, font]) => {
+    const item = document.createElement('div');
+    item.className = 'font-family-item' + (id === currentFont ? ' selected' : '');
+    item.dataset.fontId = id;
+    item.innerHTML = `
+      <span class="font-family-item-preview" style="font-family:${font.family}">${font.preview}</span>
+      <span class="font-family-item-name">${font.name}</span>
+    `;
+    item.addEventListener('click', () => { applyFont(id); closeFontFamilyPicker(); });
+    picker.appendChild(item);
+  });
+}
+
+function closeFontFamilyPicker() {
+  document.getElementById('font-family-picker').classList.remove('open');
+}
+
+function toggleFontFamilyPicker() {
+  document.getElementById('font-family-picker').classList.toggle('open');
+}
+
+const FONT_WEIGHT_LABELS = {
+  100: 'Fin',  200: 'Extra-fin', 300: 'Léger',
+  400: 'Normal', 500: 'Moyen',
+  600: 'Semi-gras', 700: 'Gras', 800: 'Extra-gras', 900: 'Noir',
+};
+
+function applyFontWeight(weight) {
+  currentFontWeight = Math.min(900, Math.max(100, Math.round(weight / 100) * 100));
+  document.documentElement.style.setProperty('--editor-font-weight', currentFontWeight);
+  chrome.storage.local.set({ quicknotes_font_weight: currentFontWeight });
+  const el = document.getElementById('fmt-weight-val');
+  if (el) el.textContent = FONT_WEIGHT_LABELS[currentFontWeight];
+}
+
+function applyFontSize(size) {
+  currentFontSize = Math.min(24, Math.max(10, size));
+  document.documentElement.style.setProperty('--editor-font-size', currentFontSize + 'px');
+  chrome.storage.local.set({ quicknotes_font_size: currentFontSize });
+  const el = document.getElementById('fmt-size-val');
+  if (el) el.textContent = currentFontSize + 'px';
+}
+
 function toggleSettingsPanel() {
   const panel = document.getElementById('settings-panel');
   if (panel.style.display === 'none') {
@@ -1218,10 +1551,16 @@ function triggerDownload(content, filename, mimeType) {
 
 function exportAllNotes() {
   const data = {
-    version:    1,
+    version:    2,
     exportedAt: new Date().toISOString(),
     notes:      notes,
     images:     images,
+    settings: {
+      theme:      currentTheme,
+      font:       currentFont,
+      fontSize:   currentFontSize,
+      fontWeight: currentFontWeight,
+    },
   };
   const date = new Date().toISOString().slice(0, 10);
   triggerDownload(JSON.stringify(data, null, 2), `quicknotes-${date}.json`, 'application/json');
@@ -1254,6 +1593,12 @@ async function importFromFile(file) {
     if (replace) {
       notes  = data.notes;
       images = data.images || {};
+      if (data.settings) {
+        applyTheme(data.settings.theme      || 'brun');
+        applyFont(data.settings.font        || 'default');
+        applyFontSize(data.settings.fontSize   ?? 13);
+        applyFontWeight(data.settings.fontWeight ?? 400);
+      }
     } else {
       const existingIds = new Set(notes.map(n => n.id));
       notes = [...notes, ...data.notes.filter(n => !existingIds.has(n.id))];
@@ -1268,7 +1613,8 @@ async function importFromFile(file) {
       const sorted = [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
       selectNote(sorted[0].id);
     }
-    showImportToast(`${data.notes.length} note(s) importée(s)`);
+    const settingsRestored = replace && data.settings ? ' + paramètres' : '';
+    showImportToast(`${data.notes.length} note(s) importée(s)${settingsRestored}`);
 
   } else if (ext === 'md') {
     const text = await file.text();
@@ -1305,13 +1651,19 @@ function showImportToast(msg) {
    Initialisation
    ═══════════════════════════════════════════════════════════════════ */
 async function init() {
-  const [loadedNotes, , savedTheme] = await Promise.all([
+  const [loadedNotes, , savedTheme, savedFont, savedFontSize, savedFontWeight] = await Promise.all([
     loadNotes(),
     loadImages(),
     new Promise(r => chrome.storage.local.get(['quicknotes_theme'], d => r(d.quicknotes_theme || 'brun'))),
+    new Promise(r => chrome.storage.local.get(['quicknotes_font'], d => r(d.quicknotes_font || 'default'))),
+    new Promise(r => chrome.storage.local.get(['quicknotes_font_size'], d => r(d.quicknotes_font_size || 13))),
+    new Promise(r => chrome.storage.local.get(['quicknotes_font_weight'], d => r(d.quicknotes_font_weight || 400))),
   ]);
   notes = loadedNotes;
   applyTheme(savedTheme);
+  applyFont(savedFont);
+  applyFontSize(savedFontSize);
+  applyFontWeight(savedFontWeight);
   renderNoteList();
 
   if (notes.length > 0) {
@@ -1373,6 +1725,13 @@ async function init() {
   document.getElementById('close-settings-btn').addEventListener('click', () => {
     document.getElementById('settings-panel').style.display = 'none';
   });
+
+  renderFontFamilyPicker();
+  document.getElementById('btn-font-family').addEventListener('click', toggleFontFamilyPicker);
+  document.getElementById('fmt-size-dec').addEventListener('click', () => applyFontSize(currentFontSize - 1));
+  document.getElementById('fmt-size-inc').addEventListener('click', () => applyFontSize(currentFontSize + 1));
+  document.getElementById('fmt-weight-dec').addEventListener('click', () => applyFontWeight(currentFontWeight - 100));
+  document.getElementById('fmt-weight-inc').addEventListener('click', () => applyFontWeight(currentFontWeight + 100));
 
   document.getElementById('export-json-btn').addEventListener('click', exportAllNotes);
   document.getElementById('export-md-btn').addEventListener('click', exportCurrentNote);
@@ -1440,7 +1799,15 @@ async function init() {
     if (!hPicker.contains(e.target) && !hBtn.contains(e.target)) {
       hPicker.classList.remove('open');
     }
+    const fPicker = document.getElementById('font-family-picker');
+    const fBtn    = document.getElementById('btn-font-family');
+    if (!fPicker.contains(e.target) && !fBtn.contains(e.target)) {
+      closeFontFamilyPicker();
+    }
   });
+
+  document.getElementById('btn-ul').addEventListener('click', () => insertList(false));
+  document.getElementById('btn-ol').addEventListener('click', () => insertList(true));
 
   document.getElementById('btn-edit-mode').addEventListener('click', () => setPreviewMode(false));
   document.getElementById('btn-preview-mode').addEventListener('click', () => setPreviewMode(true));
