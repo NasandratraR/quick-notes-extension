@@ -153,6 +153,7 @@ const FONTS = {
    État global
    ═══════════════════════════════════════════════════════════════════ */
 let notes = [];
+let groups = [];
 let images = {};          // { imgId: dataUrl }
 let currentNoteId = null;
 let saveTimer = null;
@@ -173,6 +174,9 @@ let currentFont       = 'default';
 let currentFontSize   = 13;
 let currentFontWeight = 400;
 let tocScrollPending = false;
+let dragOverGroupId = null;
+let ungroupedCollapsed = false;
+let groupDrag = null;
 
 /* ═══════════════════════════════════════════════════════════════════
    Recherche dans l'éditeur
@@ -366,6 +370,21 @@ function loadNotes() {
 function persistNotes() {
   return new Promise(resolve => {
     chrome.storage.local.set({ quicknotes: notes }, resolve);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Stockage des groupes
+   ═══════════════════════════════════════════════════════════════════ */
+function loadGroups() {
+  return new Promise(resolve => {
+    chrome.storage.local.get(['quicknotes_groups'], r => resolve(r.quicknotes_groups || []));
+  });
+}
+
+function persistGroups() {
+  return new Promise(resolve => {
+    chrome.storage.local.set({ quicknotes_groups: groups, quicknotes_ungrouped_collapsed: ungroupedCollapsed }, resolve);
   });
 }
 
@@ -747,6 +766,24 @@ function renderMarkdown(text) {
       continue;
     }
 
+    /* Listes de tâches : - [ ] ou - [x] */
+    if (/^[-*+]\s\[[ xX]\]\s/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^[-*+]\s\[[ xX]\]\s/.test(lines[i])) {
+        const checked = /^[-*+]\s\[[xX]\]/.test(lines[i]);
+        const text    = lines[i].replace(/^[-*+]\s\[[ xX]\]\s*/, '');
+        items.push(
+          `<li class="task-item" data-line="${i}">` +
+          `<input type="checkbox" class="task-checkbox" data-line="${i}"${checked ? ' checked' : ''}>` +
+          `<span class="task-label${checked ? ' task-done' : ''}">${inlineFormat(text)}</span>` +
+          `</li>`
+        );
+        i++;
+      }
+      blocks.push(`<ul class="task-list">${items.join('')}</ul>`);
+      continue;
+    }
+
     /* Listes non ordonnées */
     if (/^[-*+]\s/.test(line)) {
       const items = [];
@@ -891,8 +928,40 @@ function renderPreviewPanel() {
 
   setupImageResize();
   setupTableResize();
+  setupCheckboxes();
   if (isTocOpen) { renderTocPanel(); setupTocScrollSpy(); }
   if (editorSearchQuery) highlightPreviewPanel();
+}
+
+/* Checkboxes interactives en aperçu */
+function setupCheckboxes() {
+  const previewEl = document.getElementById('preview-panel');
+  previewEl.querySelectorAll('.task-checkbox').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const note = notes.find(n => n.id === currentNoteId);
+      if (!note) return;
+      const lineIdx = parseInt(cb.dataset.line);
+      const lines   = note.content.split('\n');
+      if (!lines[lineIdx]) return;
+      lines[lineIdx] = cb.checked
+        ? lines[lineIdx].replace(/^([-*+]\s)\[ \]/, '$1[x]')
+        : lines[lineIdx].replace(/^([-*+]\s)\[[xX]\]/, '$1[ ]');
+      note.content = lines.join('\n');
+      note.updatedAt = Date.now();
+      document.getElementById('note-editor').value = note.content;
+      persistNotes();
+      updateNoteItemDisplay(note);
+    });
+  });
+}
+
+function insertCheckbox() {
+  const editor = document.getElementById('note-editor');
+  const pos    = editor.selectionStart;
+  const prefix = pos > 0 && editor.value[pos - 1] !== '\n' ? '\n' : '';
+  editor.setRangeText(prefix + '- [ ] ', pos, editor.selectionEnd, 'end');
+  editor.focus();
+  onEditorInput();
 }
 
 /* Poignée de redimensionnement des images en aperçu */
@@ -1158,15 +1227,31 @@ function showToast() {
 function updateNoteItemDisplay(note) {
   const el = document.querySelector(`.note-item[data-id="${note.id}"]`);
   if (!el) return;
-  const titleEl   = el.querySelector('.note-title');
-  const previewEl = el.querySelector('.note-preview');
-  const dateEl    = el.querySelector('.note-date');
-  if (titleEl)   titleEl.textContent  = getNoteTitle(note);
-  if (previewEl) {
-    const p = getNotePreview(note);
-    previewEl.innerHTML = p ? escHtml(p) : '<em style="opacity:.5">Vide</em>';
-  }
-  if (dateEl)    dateEl.textContent   = formatDate(note.updatedAt);
+  const titleEl = el.querySelector('.note-title');
+  const dateEl  = el.querySelector('.note-date');
+  if (titleEl) titleEl.textContent = getNoteTitle(note);
+  if (dateEl)  dateEl.textContent  = formatDate(note.updatedAt);
+}
+
+function createNoteItem(note, now) {
+  const title   = getNoteTitle(note);
+  const preview = getNotePreview(note);
+  const item = document.createElement('div');
+  item.className = 'note-item' + (note.id === currentNoteId ? ' active' : '');
+  item.dataset.id = note.id;
+  item.draggable = true;
+  item.innerHTML = `
+    <div class="note-item-header">
+      <div class="note-title">${escHtml(title)}</div>
+      <div class="note-date">${formatDate(note.updatedAt, now)}</div>
+    </div>
+  `;
+  item.addEventListener('click', () => selectNote(note.id));
+  item.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    watchForDrag(note.id, item, e);
+  });
+  return item;
 }
 
 function renderNoteList(filter = '') {
@@ -1174,7 +1259,6 @@ function renderNoteList(filter = '') {
   const q = filter.toLowerCase();
   const now = Date.now();
 
-  // Respecte l'ordre du tableau ; le tri ne s'applique que lors du filtre de recherche
   const filtered = notes.filter(n =>
     !q ||
     (n.title || '').toLowerCase().includes(q) ||
@@ -1183,36 +1267,117 @@ function renderNoteList(filter = '') {
 
   list.innerHTML = '';
 
-  if (filtered.length === 0) {
+  /* ── Groupes ── */
+  groups.forEach(group => {
+    const groupNotes = filtered.filter(n => n.groupId === group.id);
+
+    const header = document.createElement('div');
+    header.className = 'group-header';
+    header.dataset.groupId = group.id;
+    const chevronD = group.collapsed
+      ? 'M9,6 L15,12 L9,18'
+      : 'M6,9 L12,15 L18,9';
+    header.innerHTML = `
+      <button class="group-toggle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="${chevronD}"/>
+        </svg>
+      </button>
+      <span class="group-dot" style="background:${escHtml(group.color || '#888')}"></span>
+      <span class="group-name">${escHtml(group.name)}</span>
+      <span class="group-count">${groupNotes.length}</span>
+      <button class="group-delete" title="Supprimer le groupe">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="11" height="11">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    `;
+
+    /* Clic sur l'en-tête entier = collapse/déplie */
+    header.addEventListener('click', () => toggleGroupCollapse(group.id));
+
+    /* Drag pour réordonner les groupes */
+    header.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      if (e.target.closest('.group-delete') || e.target.closest('.group-name')) return;
+      watchForGroupDrag(group.id, header, e);
+    });
+
+    header.querySelector('.group-name').addEventListener('dblclick', e => {
+      e.stopPropagation();
+      startGroupRename(group.id, e.target);
+    });
+    header.querySelector('.group-delete').addEventListener('click', e => {
+      e.stopPropagation();
+      deleteGroup(group.id);
+    });
+    list.appendChild(header);
+
+    if (!group.collapsed) {
+      const container = document.createElement('div');
+      container.className = 'group-notes';
+      container.dataset.groupId = group.id;
+      if (groupNotes.length === 0) {
+        const hint = document.createElement('div');
+        hint.className = 'group-empty-hint';
+        hint.textContent = 'Glisser des notes ici';
+        container.appendChild(hint);
+      } else {
+        groupNotes.forEach(n => container.appendChild(createNoteItem(n, now)));
+      }
+      list.appendChild(container);
+    }
+  });
+
+  /* ── Groupe "Sans groupe" (par défaut, non supprimable) ── */
+  const ungrouped = filtered.filter(n => !n.groupId || !groups.some(g => g.id === n.groupId));
+
+  if (filtered.length === 0 && groups.length === 0) {
     list.innerHTML = `<div class="no-notes">${
       q ? `Aucune note pour « ${escHtml(filter)} »` : 'Aucune note'
     }</div>`;
     return;
   }
 
-  filtered.forEach(note => {
-    const title   = getNoteTitle(note);
-    const preview = getNotePreview(note);
-    const item = document.createElement('div');
-    item.className = 'note-item' + (note.id === currentNoteId ? ' active' : '');
-    item.dataset.id = note.id;
-    item.draggable = true;
-    item.innerHTML = `
-      <div class="note-item-header">
-        <div class="note-title">${escHtml(title)}</div>
-        <div class="note-date">${formatDate(note.updatedAt, now)}</div>
-      </div>
-      <div class="note-preview">${preview ? escHtml(preview) : '<em style="opacity:.5">Vide</em>'}</div>
-    `;
-
-    item.addEventListener('click', () => selectNote(note.id));
-    item.addEventListener('pointerdown', e => {
-      if (e.button !== 0) return;
-      watchForDrag(note.id, item, e);
-    });
-
-    list.appendChild(item);
+  const chevronU = ungroupedCollapsed ? 'M9,6 L15,12 L9,18' : 'M6,9 L12,15 L18,9';
+  const ugHeader = document.createElement('div');
+  ugHeader.className = 'group-header group-header-default';
+  ugHeader.innerHTML = `
+    <button class="group-toggle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="${chevronU}"/>
+      </svg>
+    </button>
+    <span class="group-dot" style="background:var(--text-muted)"></span>
+    <span class="group-name">Sans groupe</span>
+    <span class="group-count">${ungrouped.length}</span>
+    <button class="group-delete group-delete-disabled" title="Ce groupe par défaut ne peut pas être supprimé">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="11" height="11">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  `;
+  ugHeader.addEventListener('click', () => {
+    ungroupedCollapsed = !ungroupedCollapsed;
+    persistGroups();
+    renderNoteList(document.getElementById('search-input').value);
   });
+  list.appendChild(ugHeader);
+
+  if (!ungroupedCollapsed) {
+    const ugContainer = document.createElement('div');
+    ugContainer.className = 'group-notes';
+    ugContainer.dataset.groupId = '';
+    if (ungrouped.length === 0) {
+      const hint = document.createElement('div');
+      hint.className = 'group-empty-hint';
+      hint.textContent = 'Glisser des notes ici';
+      ugContainer.appendChild(hint);
+    } else {
+      ungrouped.forEach(n => ugContainer.appendChild(createNoteItem(n, now)));
+    }
+    list.appendChild(ugContainer);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1280,31 +1445,64 @@ function onDragMove(e) {
 
   ghost.style.top = (e.clientY - offsetY) + 'px';
 
-  const siblings = [...listEl.querySelectorAll('.note-item:not(.drag-placeholder)')];
+  /* Détecter si le curseur survole un en-tête de groupe */
+  let newGroupId = null;
+  for (const header of listEl.querySelectorAll('.group-header')) {
+    const r = header.getBoundingClientRect();
+    if (e.clientY >= r.top - 4 && e.clientY <= r.bottom + 4) {
+      newGroupId = header.dataset.groupId;
+      break;
+    }
+  }
+
+  if (newGroupId !== dragOverGroupId) {
+    listEl.querySelectorAll('.group-header.drop-target').forEach(h => h.classList.remove('drop-target'));
+    dragOverGroupId = newGroupId;
+    if (dragOverGroupId) {
+      listEl.querySelector(`.group-header[data-group-id="${dragOverGroupId}"]`)?.classList.add('drop-target');
+    }
+  }
+
+  if (dragOverGroupId) return; /* ne pas réordonner quand on vise un header */
+
+  const allNotes = [...listEl.querySelectorAll('.note-item:not(.drag-placeholder)')];
   let placed = false;
-  for (const sib of siblings) {
+  for (const sib of allNotes) {
     const r = sib.getBoundingClientRect();
     if (e.clientY < r.top + r.height / 2) {
-      listEl.insertBefore(item, sib);
+      sib.parentNode.insertBefore(item, sib);
       placed = true;
       break;
     }
   }
-  if (!placed) listEl.appendChild(item);
+  if (!placed) listEl.appendChild(item); /* zone sans groupe = root de listEl */
 }
 
 async function onDragEnd(e) {
   if (!pointerDrag) return;
-  e.preventDefault(); // empêche le click event après un drag
+  e.preventDefault();
   document.removeEventListener('pointermove',   onDragMove);
   document.removeEventListener('pointerup',     onDragEnd);
   document.removeEventListener('pointercancel', onDragEnd);
 
-  const { ghost, item, listEl } = pointerDrag;
+  const { ghost, item, listEl, noteId } = pointerDrag;
   pointerDrag = null;
+
+  listEl.querySelectorAll('.group-header.drop-target').forEach(h => h.classList.remove('drop-target'));
 
   ghost.remove();
   item.classList.remove('drag-placeholder');
+
+  const note = notes.find(n => n.id === noteId);
+  if (note) {
+    if (dragOverGroupId) {
+      note.groupId = dragOverGroupId;
+    } else {
+      const container = item.closest('.group-notes');
+      note.groupId = container ? container.dataset.groupId : null;
+    }
+  }
+  dragOverGroupId = null;
 
   const newOrder = [...listEl.querySelectorAll('.note-item')].map(el => el.dataset.id);
   notes.sort((a, b) => {
@@ -1315,6 +1513,226 @@ async function onDragEnd(e) {
 
   await persistNotes();
   renderNoteList(document.getElementById('search-input').value);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Drag & drop des groupes
+   ═══════════════════════════════════════════════════════════════════ */
+let pendingGroupDrag = null;
+
+function watchForGroupDrag(groupId, headerEl, e) {
+  pendingGroupDrag = { groupId, headerEl, startX: e.clientX, startY: e.clientY, rect: headerEl.getBoundingClientRect() };
+  document.addEventListener('pointermove', onGroupWatchMove);
+  document.addEventListener('pointerup',   onGroupWatchUp);
+}
+
+function onGroupWatchMove(e) {
+  if (!pendingGroupDrag) return;
+  const dx = e.clientX - pendingGroupDrag.startX;
+  const dy = e.clientY - pendingGroupDrag.startY;
+  if (dx * dx + dy * dy > DRAG_THRESHOLD * DRAG_THRESHOLD) {
+    document.removeEventListener('pointermove', onGroupWatchMove);
+    document.removeEventListener('pointerup',   onGroupWatchUp);
+    const { groupId, headerEl, rect, startY } = pendingGroupDrag;
+    pendingGroupDrag = null;
+    beginGroupDrag(groupId, headerEl, rect, startY - rect.top, e);
+  }
+}
+
+function onGroupWatchUp() {
+  document.removeEventListener('pointermove', onGroupWatchMove);
+  document.removeEventListener('pointerup',   onGroupWatchUp);
+  pendingGroupDrag = null;
+}
+
+function beginGroupDrag(groupId, headerEl, rect, offsetY, firstMoveEvent) {
+  const ghost = headerEl.cloneNode(true);
+  ghost.classList.add('drag-ghost');
+  ghost.style.width  = rect.width + 'px';
+  ghost.style.left   = rect.left + 'px';
+  ghost.style.top    = (firstMoveEvent.clientY - offsetY) + 'px';
+  document.body.appendChild(ghost);
+
+  headerEl.classList.add('drag-placeholder');
+  const notesEl = headerEl.nextElementSibling;
+  if (notesEl?.classList.contains('group-notes')) notesEl.classList.add('drag-placeholder');
+
+  groupDrag = { groupId, ghost, headerEl, notesEl: notesEl?.classList.contains('group-notes') ? notesEl : null, offsetY, dropTarget: null };
+
+  document.addEventListener('pointermove',   onGroupDragMove, { passive: false });
+  document.addEventListener('pointerup',     onGroupDragEnd);
+  document.addEventListener('pointercancel', onGroupDragEnd);
+}
+
+function onGroupDragMove(e) {
+  if (!groupDrag) return;
+  e.preventDefault();
+  groupDrag.ghost.style.top = (e.clientY - groupDrag.offsetY) + 'px';
+
+  document.querySelectorAll('.group-drop-line').forEach(el => el.remove());
+
+  const headers = [...document.querySelectorAll('.group-header:not(.drag-placeholder):not(.group-header-default)')];
+  let insertBefore = null;
+  for (const h of headers) {
+    const r = h.getBoundingClientRect();
+    if (e.clientY < r.top + r.height / 2) { insertBefore = h; break; }
+  }
+
+  const line = document.createElement('div');
+  line.className = 'group-drop-line';
+  const defaultHeader = document.querySelector('.group-header-default');
+  if (insertBefore) {
+    insertBefore.parentNode.insertBefore(line, insertBefore);
+  } else if (defaultHeader) {
+    defaultHeader.parentNode.insertBefore(line, defaultHeader);
+  } else {
+    document.getElementById('notes-list').appendChild(line);
+  }
+
+  groupDrag.dropTarget = insertBefore;
+}
+
+async function onGroupDragEnd(e) {
+  if (!groupDrag) return;
+  e.preventDefault();
+  document.removeEventListener('pointermove',   onGroupDragMove);
+  document.removeEventListener('pointerup',     onGroupDragEnd);
+  document.removeEventListener('pointercancel', onGroupDragEnd);
+
+  const { ghost, headerEl, notesEl, groupId, dropTarget } = groupDrag;
+  groupDrag = null;
+
+  ghost.remove();
+  document.querySelectorAll('.group-drop-line').forEach(el => el.remove());
+  headerEl.classList.remove('drag-placeholder');
+  if (notesEl) notesEl.classList.remove('drag-placeholder');
+
+  const draggedIdx = groups.findIndex(g => g.id === groupId);
+  if (draggedIdx !== -1) {
+    const [dragged] = groups.splice(draggedIdx, 1);
+    if (dropTarget) {
+      const targetIdx = groups.findIndex(g => g.id === dropTarget.dataset.groupId);
+      groups.splice(targetIdx >= 0 ? targetIdx : groups.length, 0, dragged);
+    } else {
+      groups.push(dragged);
+    }
+    await persistGroups();
+  }
+
+  renderNoteList(document.getElementById('search-input').value);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Gestion des groupes
+   ═══════════════════════════════════════════════════════════════════ */
+const GROUP_COLORS = ['#e06c6c','#e09640','#c4aa30','#5aa85a','#4a8fc4','#8060b8','#b84080','#38a89a'];
+
+async function createGroup(name) {
+  if (!name.trim()) return;
+  const group = {
+    id: generateId(),
+    name: name.trim(),
+    color: GROUP_COLORS[groups.length % GROUP_COLORS.length],
+    collapsed: false,
+  };
+  groups.push(group);
+  await persistGroups();
+  renderNoteList(document.getElementById('search-input').value);
+}
+
+async function deleteGroup(groupId) {
+  const group = groups.find(g => g.id === groupId);
+  if (!group) return;
+  const notesInGroup = notes.filter(n => n.groupId === groupId);
+  if (notesInGroup.length > 0) {
+    if (!confirm(
+      `Supprimer le groupe « ${group.name} » ?\n\n` +
+      `${notesInGroup.length} note(s) seront conservées sans groupe.\n\nOK pour confirmer.`
+    )) return;
+    notesInGroup.forEach(n => { n.groupId = null; });
+    await persistNotes();
+  }
+  groups = groups.filter(g => g.id !== groupId);
+  await persistGroups();
+  renderNoteList(document.getElementById('search-input').value);
+}
+
+async function renameGroup(groupId, newName) {
+  if (!newName.trim()) return;
+  const group = groups.find(g => g.id === groupId);
+  if (!group) return;
+  group.name = newName.trim();
+  await persistGroups();
+  renderNoteList(document.getElementById('search-input').value);
+}
+
+function toggleGroupCollapse(groupId) {
+  const group = groups.find(g => g.id === groupId);
+  if (!group) return;
+  group.collapsed = !group.collapsed;
+  persistGroups();
+  renderNoteList(document.getElementById('search-input').value);
+}
+
+function showNewGroupInput() {
+  const list = document.getElementById('notes-list');
+  if (document.getElementById('new-group-input-row')) return;
+
+  const row = document.createElement('div');
+  row.className = 'new-group-input-row';
+  row.id = 'new-group-input-row';
+  row.innerHTML = `
+    <input type="text" class="new-group-input" placeholder="Nom du groupe…" autocomplete="off">
+    <button class="new-group-confirm">OK</button>
+    <button class="new-group-cancel">✕</button>
+  `;
+
+  const input   = row.querySelector('.new-group-input');
+  const confirm = row.querySelector('.new-group-confirm');
+  const cancel  = row.querySelector('.new-group-cancel');
+
+  const submit = async () => {
+    const name = input.value.trim();
+    row.remove();
+    if (name) await createGroup(name);
+  };
+  const close = () => row.remove();
+
+  confirm.addEventListener('click', submit);
+  cancel.addEventListener('click', close);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); submit(); }
+    if (e.key === 'Escape') close();
+  });
+
+  list.insertBefore(row, list.firstChild);
+  input.focus();
+}
+
+function startGroupRename(groupId, nameEl) {
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'group-rename-input';
+  input.value = nameEl.textContent;
+
+  const finish = async () => {
+    const newName = input.value.trim();
+    input.replaceWith(nameEl);
+    if (newName && newName !== nameEl.textContent) {
+      await renameGroup(groupId, newName);
+    }
+  };
+
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { input.value = nameEl.textContent; input.blur(); }
+  });
+  input.addEventListener('click', e => e.stopPropagation());
+
+  nameEl.replaceWith(input);
+  input.focus();
+  input.select();
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1518,8 +1936,9 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (ctrl && e.shiftKey && e.key==='K') { e.preventDefault(); toggleLangPicker(); return; }
-  if (ctrl && e.shiftKey && e.key==='U') { e.preventDefault(); insertList(false); return; }
-  if (ctrl && e.shiftKey && e.key==='O') { e.preventDefault(); insertList(true);  return; }
+  if (ctrl && e.shiftKey && e.key==='U') { e.preventDefault(); insertList(false);   return; }
+  if (ctrl && e.shiftKey && e.key==='O') { e.preventDefault(); insertList(true);    return; }
+  if (ctrl && e.shiftKey && e.key==='C') { e.preventDefault(); insertCheckbox();    return; }
   if (ctrl && e.key === 'e')           { e.preventDefault(); wrapSelection(editor, '`', '`'); return; }
   if (ctrl && e.key === 'b' && !isPreviewMode) { e.preventDefault(); wrapSelection(editor, '**', '**'); return; }
   if (ctrl && e.key === 'i' && !isPreviewMode) { e.preventDefault(); wrapSelection(editor, '*', '*'); return; }
@@ -1822,15 +2241,17 @@ function triggerDownload(content, filename, mimeType) {
 
 function exportAllNotes() {
   const data = {
-    version:    2,
+    version:    3,
     exportedAt: new Date().toISOString(),
     notes:      notes,
+    groups:     groups,
     images:     images,
     settings: {
-      theme:      currentTheme,
-      font:       currentFont,
-      fontSize:   currentFontSize,
-      fontWeight: currentFontWeight,
+      theme:             currentTheme,
+      font:              currentFont,
+      fontSize:          currentFontSize,
+      fontWeight:        currentFontWeight,
+      ungroupedCollapsed,
     },
   };
   const date = new Date().toISOString().slice(0, 10);
@@ -1855,28 +2276,63 @@ async function importFromFile(file) {
     try { data = JSON.parse(text); } catch { alert('Fichier JSON invalide.'); return; }
     if (!Array.isArray(data.notes)) { alert('Format de sauvegarde non reconnu.'); return; }
 
+    const importedGroups = Array.isArray(data.groups) ? data.groups : [];
     const replace = confirm(
-      `Importer ${data.notes.length} note(s) depuis "${file.name}".\n\n` +
-      `OK → Remplacer toutes vos notes existantes\n` +
-      `Annuler → Fusionner (ajouter uniquement les nouvelles notes)`
+      `Importer depuis "${file.name}" :\n` +
+      `  • ${data.notes.length} note(s)\n` +
+      `  • ${importedGroups.length} groupe(s)\n\n` +
+      `OK → Remplacer toutes vos données\n` +
+      `Annuler → Fusionner (ajouter uniquement les nouveaux éléments)`
     );
 
     if (replace) {
       notes  = data.notes;
+      groups = importedGroups;
       images = data.images || {};
       if (data.settings) {
-        applyTheme(data.settings.theme      || 'brun');
-        applyFont(data.settings.font        || 'default');
-        applyFontSize(data.settings.fontSize   ?? 13);
+        applyTheme(data.settings.theme           || 'brun');
+        applyFont(data.settings.font             || 'default');
+        applyFontSize(data.settings.fontSize     ?? 13);
         applyFontWeight(data.settings.fontWeight ?? 400);
+        if (typeof data.settings.ungroupedCollapsed === 'boolean') {
+          ungroupedCollapsed = data.settings.ungroupedCollapsed;
+        }
       }
     } else {
-      const existingIds = new Set(notes.map(n => n.id));
-      notes = [...notes, ...data.notes.filter(n => !existingIds.has(n.id))];
+      /* ── Fusion des groupes ─────────────────────────────────────────── */
+      // Remapper les IDs des groupes importés qui entrent en collision
+      const groupIdMap = {}; // ancienId → nouvelId
+      const existingGroupIds = new Set(groups.map(g => g.id));
+      importedGroups.forEach(g => {
+        if (existingGroupIds.has(g.id)) {
+          // Collision d'ID : créer un nouveau groupe avec un nouvel ID
+          const newId = generateId();
+          groupIdMap[g.id] = newId;
+          groups.push({ ...g, id: newId });
+        } else {
+          groupIdMap[g.id] = g.id;
+          groups.push(g);
+          existingGroupIds.add(g.id);
+        }
+      });
+
+      /* ── Fusion des notes (en appliquant le remapping de groupId) ───── */
+      const existingNoteIds = new Set(notes.map(n => n.id));
+      const newNotes = data.notes
+        .filter(n => !existingNoteIds.has(n.id))
+        .map(n => {
+          if (n.groupId && groupIdMap[n.groupId]) {
+            return { ...n, groupId: groupIdMap[n.groupId] };
+          }
+          return n;
+        });
+      notes = [...notes, ...newNotes];
+
       if (data.images) Object.assign(images, data.images);
     }
 
     await persistNotes();
+    await persistGroups();
     await new Promise(r => chrome.storage.local.set({ quicknotes_images: images }, r));
 
     renderNoteList();
@@ -1884,8 +2340,10 @@ async function importFromFile(file) {
       const sorted = [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
       selectNote(sorted[0].id);
     }
-    const settingsRestored = replace && data.settings ? ' + paramètres' : '';
-    showImportToast(`${data.notes.length} note(s) importée(s)${settingsRestored}`);
+    const suffix = replace && data.settings ? ' + paramètres' : '';
+    showImportToast(
+      `${data.notes.length} note(s) et ${importedGroups.length} groupe(s) importé(s)${suffix}`
+    );
 
   } else if (ext === 'md') {
     const text = await file.text();
@@ -1922,15 +2380,19 @@ function showImportToast(msg) {
    Initialisation
    ═══════════════════════════════════════════════════════════════════ */
 async function init() {
-  const [loadedNotes, , savedTheme, savedFont, savedFontSize, savedFontWeight] = await Promise.all([
+  const [loadedNotes, loadedGroups, , savedTheme, savedFont, savedFontSize, savedFontWeight, savedUngroupedCollapsed] = await Promise.all([
     loadNotes(),
+    loadGroups(),
     loadImages(),
     new Promise(r => chrome.storage.local.get(['quicknotes_theme'], d => r(d.quicknotes_theme || 'brun'))),
     new Promise(r => chrome.storage.local.get(['quicknotes_font'], d => r(d.quicknotes_font || 'default'))),
     new Promise(r => chrome.storage.local.get(['quicknotes_font_size'], d => r(d.quicknotes_font_size || 13))),
     new Promise(r => chrome.storage.local.get(['quicknotes_font_weight'], d => r(d.quicknotes_font_weight || 400))),
+    new Promise(r => chrome.storage.local.get(['quicknotes_ungrouped_collapsed'], d => r(d.quicknotes_ungrouped_collapsed || false))),
   ]);
-  notes = loadedNotes;
+  notes              = loadedNotes;
+  groups             = loadedGroups;
+  ungroupedCollapsed = savedUngroupedCollapsed;
   applyTheme(savedTheme);
   applyFont(savedFont);
   applyFontSize(savedFontSize);
@@ -1947,6 +2409,7 @@ async function init() {
 
   /* ── Barre principale ── */
   document.getElementById('new-note-btn').addEventListener('click', createNote);
+  document.getElementById('new-group-btn').addEventListener('click', showNewGroupInput);
   document.getElementById('delete-btn').addEventListener('click', deleteCurrentNote);
   document.getElementById('info-btn').addEventListener('click', toggleInfoPanel);
   document.getElementById('close-info-btn').addEventListener('click', closeInfoPanel);
@@ -2087,6 +2550,7 @@ async function init() {
 
   document.getElementById('btn-ul').addEventListener('click', () => insertList(false));
   document.getElementById('btn-ol').addEventListener('click', () => insertList(true));
+  document.getElementById('btn-checkbox').addEventListener('click', insertCheckbox);
 
   document.getElementById('btn-edit-mode').addEventListener('click', () => setPreviewMode(false));
   document.getElementById('btn-preview-mode').addEventListener('click', () => setPreviewMode(true));
