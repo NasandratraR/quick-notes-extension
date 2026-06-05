@@ -160,6 +160,14 @@ let renderTimer = null;
 let toastTimer = null;
 let isPreviewMode = false;
 let isSplitMode   = false;
+const TEXT_COLORS = [
+  '#e74c3c','#e67e22','#f1c40f','#2ecc71',
+  '#1abc9c','#3498db','#9b59b6','#e91e8c',
+  '#c0392b','#d35400','#27ae60','#2980b9',
+  '#795548','#607d8b','#2c3e50','#bdc3c7',
+];
+
+let currentTextColor  = TEXT_COLORS[0];
 let currentTheme      = 'brun';
 let currentFont       = 'default';
 let currentFontSize   = 13;
@@ -776,15 +784,11 @@ function renderMarkdown(text) {
   return blocks.join('\n');
 }
 
-function inlineFormat(text) {
+function processInlineMarkdown(text) {
   return esc(text)
-    /* Code inline `...` */
     .replace(/`([^`]+)`/g, '<code>$1</code>')
-    /* Gras **...** */
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    /* Italique *...* */
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    /* Images ![alt](src) ou ![alt](img:ID =300) — avant les liens */
     .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, src) => {
       let resolved = '', imgRef = src, width = null;
       if (src.startsWith('img:')) {
@@ -803,8 +807,25 @@ function inlineFormat(text) {
            + `<div class="img-resize-handle" title="Redimensionner"></div>`
            + `</div>`;
     })
-    /* Liens [texte](url) */
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+}
+
+function inlineFormat(text) {
+  const re = /<span style="color:(#[0-9a-fA-F]{3,8})">([\s\S]*?)<\/span>/g;
+  const parts = [];
+  let last = 0, m;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push({ type: 'text',  value: text.slice(last, m.index) });
+    parts.push({ type: 'color', color: m[1], value: m[2] });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push({ type: 'text', value: text.slice(last) });
+  if (!parts.length) return processInlineMarkdown(text);
+  return parts.map(p =>
+    p.type === 'color'
+      ? `<span style="color:${p.color}">${processInlineMarkdown(p.value)}</span>`
+      : processInlineMarkdown(p.value)
+  ).join('');
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1537,7 +1558,7 @@ function parseToc(content) {
   let hIdx = 0;
   content.split('\n').forEach((line, lineIdx) => {
     const m = line.match(/^(#{1,6})\s+(.+)/);
-    if (m) headings.push({ level: m[1].length, text: m[2].trim(), lineIdx, id: `h-${hIdx++}` });
+    if (m) headings.push({ level: m[1].length, text: m[2].trim().replace(/<[^>]+>/g, ''), lineIdx, id: `h-${hIdx++}` });
   });
   return headings;
 }
@@ -1665,6 +1686,55 @@ function renderThemeGrid() {
     card.addEventListener('click', () => applyTheme(id));
     grid.appendChild(card);
   });
+}
+
+function closeColorPicker() {
+  document.getElementById('color-picker-dropdown').classList.remove('open');
+}
+
+function applyTextColor(color) {
+  currentTextColor = color;
+  document.getElementById('color-a-bar').style.background = color;
+  wrapSelection(document.getElementById('note-editor'), `<span style="color:${color}">`, '</span>');
+  closeColorPicker();
+}
+
+function removeTextColor() {
+  const editor = document.getElementById('note-editor');
+  const start  = editor.selectionStart;
+  const end    = editor.selectionEnd;
+  if (start >= end) { closeColorPicker(); return; }
+  const selected = editor.value.slice(start, end);
+  const cleaned  = selected.replace(/<span style="color:#[0-9a-fA-F]{3,8}">([\s\S]*?)<\/span>/g, '$1');
+  editor.setRangeText(cleaned, start, end, 'select');
+  editor.focus();
+  onEditorInput();
+  closeColorPicker();
+}
+
+function toggleColorPicker() {
+  const dropdown = document.getElementById('color-picker-dropdown');
+  if (dropdown.classList.contains('open')) { closeColorPicker(); return; }
+
+  const swatches = document.createElement('div');
+  swatches.className = 'color-swatches';
+  TEXT_COLORS.forEach(color => {
+    const s = document.createElement('div');
+    s.className = 'color-swatch' + (color === currentTextColor ? ' selected' : '');
+    s.style.background = color;
+    s.title = color;
+    s.addEventListener('click', () => applyTextColor(color));
+    swatches.appendChild(s);
+  });
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'color-remove-btn';
+  removeBtn.textContent = '✕ Retirer la couleur';
+  removeBtn.addEventListener('click', removeTextColor);
+
+  dropdown.innerHTML = '';
+  dropdown.appendChild(swatches);
+  dropdown.appendChild(removeBtn);
+  dropdown.classList.add('open');
 }
 
 function applyFont(id) {
@@ -2005,7 +2075,15 @@ async function init() {
     if (!fPicker.contains(e.target) && !fBtn.contains(e.target)) {
       closeFontFamilyPicker();
     }
+    const cDropdown = document.getElementById('color-picker-dropdown');
+    const cBtn      = document.getElementById('btn-text-color');
+    if (!cDropdown.contains(e.target) && !cBtn.contains(e.target)) {
+      closeColorPicker();
+    }
   });
+
+  document.getElementById('btn-text-color').addEventListener('click', toggleColorPicker);
+  document.getElementById('color-a-bar').style.background = currentTextColor;
 
   document.getElementById('btn-ul').addEventListener('click', () => insertList(false));
   document.getElementById('btn-ol').addEventListener('click', () => insertList(true));
