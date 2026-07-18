@@ -38,37 +38,47 @@ export function selectNote(id) {
   editor.focus();
 }
 
-export async function createNote() {
-  const note = { id: generateId(), title: '', content: '', createdAt: Date.now(), updatedAt: Date.now() };
+export async function createNote(groupId = null) {
+  const note = { id: generateId(), title: '', content: '', groupId, createdAt: Date.now(), updatedAt: Date.now() };
   state.notes.unshift(note);
   await persistNotes();
   renderNoteList(document.getElementById('search-input').value);
   selectNote(note.id);
 }
 
-export async function deleteCurrentNote() {
-  if (!state.currentNoteId) return;
+export async function deleteNote(id) {
   if (!confirm('Supprimer cette note ? Cette action est irréversible.')) return;
 
-  const dying = state.notes.find(n => n.id === state.currentNoteId);
-  if (dying) await deleteImages(extractImageIds(dying.content));
+  const dying = state.notes.find(n => n.id === id);
+  if (!dying) return;
+  await deleteImages(extractImageIds(dying.content));
 
-  state.notes = state.notes.filter(n => n.id !== state.currentNoteId);
-  state.currentNoteId = null;
+  state.notes = state.notes.filter(n => n.id !== id);
   await persistNotes();
 
-  document.getElementById('main-content').style.display        = 'none';
-  document.getElementById('empty-state').style.display         = 'flex';
-  document.getElementById('view-toggle-toolbar').style.display = 'none';
-  closeInfoPanel();
+  const wasCurrent = state.currentNoteId === id;
+  if (wasCurrent) {
+    state.currentNoteId = null;
+    document.getElementById('main-content').style.display        = 'none';
+    document.getElementById('empty-state').style.display         = 'flex';
+    document.getElementById('view-toggle-toolbar').style.display = 'none';
+    closeInfoPanel();
+  }
 
   const filter = document.getElementById('search-input').value;
   renderNoteList(filter);
 
-  const next = state.notes
-    .filter(n => !filter || n.content.toLowerCase().includes(filter.toLowerCase()))
-    .sort((a, b) => b.updatedAt - a.updatedAt)[0];
-  if (next) selectNote(next.id);
+  if (wasCurrent) {
+    const next = state.notes
+      .filter(n => !filter || n.content.toLowerCase().includes(filter.toLowerCase()))
+      .sort((a, b) => b.updatedAt - a.updatedAt)[0];
+    if (next) selectNote(next.id);
+  }
+}
+
+export async function deleteCurrentNote() {
+  if (!state.currentNoteId) return;
+  await deleteNote(state.currentNoteId);
 }
 
 export function onTitleInput() {

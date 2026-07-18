@@ -1,0 +1,8 @@
+node_modules/
+.DS_Store
+*.log
+.env
+.env.*
+
+# Config Firebase locale (contient des identifiants propres à chaque déploiement)
+src/firebase-config.js

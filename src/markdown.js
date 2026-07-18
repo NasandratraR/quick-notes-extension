@@ -349,6 +349,16 @@ export function renderMarkdown(text) {
   return blocks.join('\n');
 }
 
+/* Bloque les schémas d'URL exécutables (javascript:, vbscript:, data: hors images…)
+   pour empêcher l'injection de script via un lien ou une image Markdown. */
+function isSafeUrl(url, { allowData = false } = {}) {
+  const trimmed = url.trim().replace(/^&quot;|&quot;$/g, '');
+  if (/^(https?:|mailto:)/i.test(trimmed)) return true;
+  if (allowData && /^data:image\//i.test(trimmed)) return true;
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return true; // relatif ou sans schéma
+  return false;
+}
+
 export function processInlineMarkdown(text) {
   return esc(text)
     .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -362,7 +372,7 @@ export function processInlineMarkdown(text) {
         imgRef = `img:${imgId}`;
         if (eqIdx !== -1) width = parseInt(src.slice(eqIdx + 2)) || null;
         resolved = state.images[imgId] || '';
-      } else {
+      } else if (isSafeUrl(src, { allowData: true })) {
         resolved = src;
       }
       if (!resolved) return '';
@@ -372,7 +382,11 @@ export function processInlineMarkdown(text) {
            + `<div class="img-resize-handle" title="Redimensionner"></div>`
            + `</div>`;
     })
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, label, href) =>
+      isSafeUrl(href)
+        ? `<a href="${href}" target="_blank" rel="noopener">${label}</a>`
+        : label
+    );
 }
 
 export function inlineFormat(text) {

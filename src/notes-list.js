@@ -4,7 +4,7 @@
 import { state } from './state.js';
 import { getNoteTitle, getNotePreview, formatDate, escHtml } from './utils.js';
 import { persistGroups } from './storage.js';
-import { selectNote } from './notes-crud.js';
+import { selectNote, createNote, deleteNote } from './notes-crud.js';
 import { watchForDrag } from './drag-drop.js';
 import { watchForGroupDrag, toggleGroupCollapse, startGroupRename, deleteGroup } from './groups.js';
 
@@ -29,12 +29,22 @@ export function createNoteItem(note, now) {
     <div class="note-item-header">
       <div class="note-title">${escHtml(title)}</div>
       <div class="note-date">${formatDate(note.updatedAt, now)}</div>
+      <button class="note-delete" title="Supprimer la note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="11" height="11">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
   `;
   item.addEventListener('click', () => selectNote(note.id));
   item.addEventListener('pointerdown', e => {
     if (e.button !== 0) return;
+    if (e.target.closest('.note-delete')) return;
     watchForDrag(note.id, item, e);
+  });
+  item.querySelector('.note-delete').addEventListener('click', e => {
+    e.stopPropagation();
+    deleteNote(note.id);
   });
   return item;
 }
@@ -71,6 +81,11 @@ export function renderNoteList(filter = '') {
       <span class="group-dot" style="background:${escHtml(group.color || '#888')}"></span>
       <span class="group-name">${escHtml(group.name)}</span>
       <span class="group-count">${groupNotes.length}</span>
+      <button class="group-add-note" title="Ajouter une note dans ce groupe">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </button>
       <button class="group-delete" title="Supprimer le groupe">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="11" height="11">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -84,13 +99,17 @@ export function renderNoteList(filter = '') {
     /* Drag pour réordonner les groupes */
     header.addEventListener('pointerdown', e => {
       if (e.button !== 0) return;
-      if (e.target.closest('.group-delete') || e.target.closest('.group-name')) return;
+      if (e.target.closest('.group-delete') || e.target.closest('.group-add-note') || e.target.closest('.group-name')) return;
       watchForGroupDrag(group.id, header, e);
     });
 
     header.querySelector('.group-name').addEventListener('dblclick', e => {
       e.stopPropagation();
       startGroupRename(group.id, e.target);
+    });
+    header.querySelector('.group-add-note').addEventListener('click', e => {
+      e.stopPropagation();
+      createNote(group.id);
     });
     header.querySelector('.group-delete').addEventListener('click', e => {
       e.stopPropagation();

@@ -3,8 +3,9 @@
    événements de l'interface
    ═══════════════════════════════════════════════════════════════════ */
 import { state, STORAGE_KEYS } from './state.js';
-import { generateId } from './utils.js';
-import { loadNotes, persistNotes, loadGroups, loadImages, saveImage } from './storage.js';
+import { generateId, showToast } from './utils.js';
+import { loadNotes, persistNotes, loadGroups, persistGroups, loadImages, saveImage } from './storage.js';
+import { restoreSession, signIn, signOut, getCurrentUser } from './auth.js';
 import {
   applyTheme, applyFont, applyFontSize, applyFontWeight,
   renderFontFamilyPicker, toggleFontFamilyPicker, closeFontFamilyPicker,
@@ -80,6 +81,9 @@ document.addEventListener('keydown', e => {
    Initialisation
    ═══════════════════════════════════════════════════════════════════ */
 async function init() {
+  await restoreSession();
+  updateAccountUI();
+
   const [loadedNotes, loadedGroups, , savedTheme, savedFont, savedFontSize, savedFontWeight, savedUngroupedCollapsed] = await Promise.all([
     loadNotes(),
     loadGroups(),
@@ -106,6 +110,28 @@ async function init() {
     document.getElementById('main-content').style.display = 'none';
     document.getElementById('empty-state').style.display  = 'flex';
   }
+
+  /* ── Compte ── */
+  document.getElementById('signin-btn').addEventListener('click', async () => {
+    try {
+      await signIn();
+      updateAccountUI();
+      state.notes  = await loadNotes();
+      state.groups = await loadGroups();
+      /* Pousse immédiatement vers Firestore : sécurise les notes locales
+         existantes dès la première connexion, sans attendre une édition. */
+      await persistNotes();
+      await persistGroups();
+      renderNoteList(document.getElementById('search-input').value);
+      showToast();
+    } catch (err) {
+      console.warn('Connexion impossible', err);
+    }
+  });
+  document.getElementById('signout-btn').addEventListener('click', async () => {
+    await signOut();
+    updateAccountUI();
+  });
 
   /* ── Barre principale ── */
   document.getElementById('new-note-btn').addEventListener('click', createNote);
@@ -344,6 +370,13 @@ async function init() {
     renderNoteList('');
     searchInput.focus();
   });
+}
+
+function updateAccountUI() {
+  const user = getCurrentUser();
+  document.getElementById('signin-btn').style.display        = user ? 'none' : 'block';
+  document.getElementById('account-signed-in').style.display  = user ? 'flex' : 'none';
+  if (user) document.getElementById('account-email').textContent = user.email;
 }
 
 document.addEventListener('DOMContentLoaded', init);

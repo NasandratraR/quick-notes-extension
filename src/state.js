@@ -51,4 +51,5 @@ export const STORAGE_KEYS = {
   font: 'quicknotes_font',
   fontSize: 'quicknotes_font_size',
   fontWeight: 'quicknotes_font_weight',
+  auth: 'quicknotes_auth',
 };
